@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BusLine — Tra cứu xe buýt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--ink:#10232b;--bg:#eef1f2;--board:#0d3a40;--amber:#ffc72c;--line:#d5dcdf;--ok:#1b8a5a;--danger:#c8403a;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;font-size:20px;display:flex;gap:10px;align-items:center}
+.brand i{width:26px;height:26px;border-radius:7px;background:var(--amber);display:grid;place-items:center;font-style:normal;font-size:14px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{border:0;background:transparent;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+nav button.on{background:var(--ink);color:#fff}
+.btn{border:1px solid var(--line);background:var(--card);padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--ink)}.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.sm{padding:3px 9px;font-size:13px}
+main{max-width:1120px;margin:0 auto;padding:22px 18px 60px}
+.grid{display:grid;grid-template-columns:330px 1fr;gap:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.panel h3{font-size:17px;margin-bottom:8px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.f{margin-bottom:10px}.f label{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:120px}.row>span,.row>button{flex:0 0 auto}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin:10px 0;flex-wrap:wrap}
+.rlist{display:flex;flex-direction:column;gap:6px;max-height:68vh;overflow:auto;margin-top:10px}
+.ritem{display:grid;grid-template-columns:46px 1fr;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;cursor:pointer;width:100%}
+.ritem.on{border-color:var(--ok);background:#f0faf5}
+.ritem b.code{background:var(--board);color:#fff;border-radius:6px;text-align:center;align-self:start;padding:2px 0}
+.ritem small,.muted{color:#5d6d74}.ritem small{display:block}
+#map{height:320px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5}
+.pin{width:24px;height:24px;border-radius:50%;background:var(--amber);color:var(--ink);font:700 12px/1 "Be Vietnam Pro",sans-serif;display:grid;place-items:center;border:2px solid var(--board)}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#5d6d74;font-weight:600;white-space:nowrap}
+.badge{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#e3f4ea;color:var(--ok);white-space:nowrap}
+.badge.late{background:#fdecc8;color:#8a5a00}.badge.bad{background:#fbe0de;color:var(--danger)}.badge.done{background:#e6eaec;color:#4a5a61}
+code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9}
+#toast div{background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;max-width:90vw}#toast div.err{background:var(--danger)}
+.warn{background:#fdf3d8;border:1px solid #e8a317;border-radius:10px;padding:12px 16px;margin-bottom:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.rlist{max-height:none}header{padding:10px 14px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><i>B</i>BusLine</div>
+  <nav id="nav"></nav>
+  <div id="auth"></div>
+</header>
+<main><div id="cfg" class="warn" hidden>Chưa kết nối Supabase. Mở <b>index.html</b>, điền <code>SUPABASE_URL</code> và <code>SUPABASE_ANON_KEY</code> ở đầu phần script.</div><div id="view"></div></main>
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const SUPABASE_URL = 'https://cvnuhbyqhlmkcxsncbkq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2bnVoYnlxaGxta2N4c25jYmtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NTYyOTIsImV4cCI6MjExMDIzMjI5Mn0.zDgErf4imfJGxlTM9mTu6ULECHWDUdtQqcL8twzWOOI';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const trim = s => String(s ?? '').trim();
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+const money = n => Number(n).toLocaleString('vi-VN') + ' đ';
+const when = s => new Date(s).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+const badge = t => `<span class="badge ${/Trễ|DANG_CHO|ChoXu|HET_HAN/.test(t) ? 'late' : /hủy|THAT_BAI|BI_KHOA/.test(t) ? 'bad' : /hoàn thành|DA_QUET|DaGiai/.test(t) ? 'done' : ''}">${esc(t)}</span>`;
+const tbl = (cols, rows) => `<div class="scroll"><table><thead><tr>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}" class="muted">Chưa có dữ liệu.</td></tr>`}</tbody></table></div>`;
+function toast(m, err) { const d = document.createElement('div'); d.textContent = m; if (err) d.className = 'err'; $('#toast').append(d); setTimeout(() => d.remove(), 4000); }
+
+const ok = !SUPABASE_URL.includes('YOUR-');
+const sb = ok ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const S = { routes: [], stops: [], ct: [], user: null, me: null, role: null, favR: new Set(), favS: new Set(), tab: 'routes', q: '', sel: null, det: null, date: '', signup: false };
+const stopOf = id => S.stops.find(s => s.matram === id);
+const staff = () => S.role === 'admin' || S.role === 'driver';
+
+/* ---------- Tải dữ liệu ---------- */
+async function loadCatalog() {
+  const [r, t, c] = await Promise.all([sb.from('tuyenxe').select('*').order('matuyen'), sb.from('tramdung').select('*').order('matram'), sb.from('chitiettuyentram').select('*')]);
+  const bad = [r, t, c].find(x => x.error); if (bad) return toast('Không tải được dữ liệu: ' + bad.error.message, true);
+  S.routes = r.data.map(x => ({ ...x, matuyen: trim(x.matuyen) })); S.stops = t.data; S.ct = c.data.map(x => ({ ...x, matuyen: trim(x.matuyen) }));
+}
+async function loadUser() {
+  const { data: { session } } = await sb.auth.getSession();
+  S.user = session?.user ?? null; S.role = S.user?.app_metadata?.role ?? null; S.me = null; S.favR = new Set(); S.favS = new Set();
+  if (!S.user) return;
+  const m = await sb.from('nguoidung').select('manguoidung,hoten,email,sodienthoai,sodu,ngaytao,trangthai').eq('email', S.user.email).maybeSingle();
+  S.me = m.data;
+  if (S.me) {
+    const [fr, fs] = await Promise.all([sb.from('tuyenyeuthich').select('matuyen').eq('manguoidung', S.me.manguoidung), sb.from('tramyeuthich').select('matram').eq('manguoidung', S.me.manguoidung)]);
+    S.favR = new Set((fr.data || []).map(x => trim(x.matuyen))); S.favS = new Set((fs.data || []).map(x => x.matram));
+  }
+}
+
+/* ---------- Khung trang ---------- */
+function render() {
+  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường'], ['acc', 'Tài khoản']].concat(staff() ? [['staff', 'Nhân viên']] : []);
+  $('#nav').innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('');
+  $('#auth').innerHTML = S.user ? `<span class="muted" style="margin-right:8px">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn" data-act="out">Đăng xuất</button>` : '<button class="btn" data-tab="acc">Đăng nhập</button>';
+  $('#view').innerHTML = S.tab === 'routes' ? viewRoutes() : S.tab === 'plan' ? viewPlan() : S.tab === 'acc' ? viewAcc() : viewStaff();
+  if (S.tab === 'routes' && S.sel) { $('#detail').innerHTML = detailHtml(); drawMap(); }
+  if (S.tab === 'plan') { $('#pb').selectedIndex = 1; loadHist(); }
+  if (S.tab === 'acc' && S.me) loadAcc();
+  if (S.tab === 'staff') loadStaff();
+}
+
+/* ---------- Tuyến xe ---------- */
+function listHtml() {
+  const q = norm(S.q);
+  const L = S.routes.filter(r => !q || norm(r.matuyen + ' ' + r.tentuyen).includes(q) || S.ct.some(c => c.matuyen === r.matuyen && norm(stopOf(c.matram)?.tentram).includes(q)));
+  return L.map(r => `<button class="ritem ${r.matuyen === S.sel ? 'on' : ''}" data-sel="${esc(r.matuyen)}"><b class="code">${esc(r.matuyen)}</b><span>${esc(r.tentuyen)}<small>${money(r.giave)}${S.favR.has(r.matuyen) ? ' · ★' : ''}</small></span></button>`).join('') || '<p class="muted">Không có tuyến phù hợp.</p>';
+}
+const viewRoutes = () => `<div class="grid"><section class="panel"><h3>Tra cứu tuyến</h3><input id="q" type="search" placeholder="Số tuyến, tên tuyến hoặc tên trạm dừng" value="${esc(S.q)}" aria-label="Tìm tuyến"><div class="rlist" id="rl">${listHtml()}</div></section><section class="panel" id="detail">${detailHtml()}</section></div>`;
+
+function detailHtml() {
+  const r = S.routes.find(x => x.matuyen === S.sel);
+  if (!r) return '<p class="muted">Chọn một tuyến để xem lộ trình, xe và lịch trình.</p>';
+  let h = `<h3>Tuyến ${esc(r.matuyen)}: ${esc(r.tentuyen)}</h3><p>Giá vé: <b>${money(r.giave)}</b></p><div class="acts" style="justify-content:flex-start">
+    ${S.me ? `<button class="btn pri" data-act="buy">Mua vé lượt bằng ví (${money(S.me.sodu)})</button><button class="btn" data-act="favr">${S.favR.has(r.matuyen) ? '★ Bỏ yêu thích' : '☆ Yêu thích'}</button>` : '<span class="muted">Đăng nhập để mua vé và lưu tuyến yêu thích.</span>'}</div>`;
+  const d = S.det; if (!d || d.code !== r.matuyen) return h + '<p class="muted">Đang tải…</p>';
+  h += '<div id="map"></div>';
+  for (const dir of ['Chiều đi', 'Chiều về']) {
+    const rows = d.lo.filter(x => x.huongdi === dir).sort((a, b) => a.thututram - b.thututram); if (!rows.length) continue;
+    h += `<h3 style="margin-top:16px">${dir}</h3>` + tbl([['#', x => x.thututram], ['Trạm dừng', x => `${esc(x.tentram)}<br><small class="muted">${esc(x.diachi)}</small>`], ['Km từ đầu', x => x.khoangcachtudiemdau], ['Phút từ trạm trước', x => x.thoigiandukientutramtruoc],
+      ['', x => S.me ? `<button class="btn sm" data-act="favs" data-id="${x.matram}" aria-label="Yêu thích trạm">${S.favS.has(x.matram) ? '★' : '☆'}</button>` : '']], rows);
+  }
+  if (!d.lo.length) h += '<p class="muted">Tuyến này chưa có dữ liệu trạm dừng.</p>';
+  h += `<h3 style="margin-top:16px">Xe buýt</h3><p>${d.xe.map(x => `${esc(trim(x.bienso))} (${esc(x.loaixe)}, ${x.soghe} chỗ)`).join(' · ') || '—'}</p>`;
+  const days = [...new Set(d.lt.map(x => x.thoigiandi.slice(0, 10)))], list = d.lt.filter(x => !S.date || x.thoigiandi.startsWith(S.date));
+  h += `<h3 style="margin-top:16px">Lịch trình</h3><select id="dsel" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
+    tbl([['Mã', x => esc(trim(x.malichtrinh))], ['Giờ đi', x => when(x.thoigiandi)], ['Giờ đến', x => when(x.thoigianden)], ['Phút', x => Math.round((new Date(x.thoigianden) - new Date(x.thoigiandi)) / 60000)], ['Xe', x => esc(trim(x.bienso))], ['Tài xế', x => esc(x.tentaixe)], ['Trạng thái', x => badge(x.trangthai)]], list);
+  return h;
+}
+async function pick(code) {
+  S.sel = code; S.det = null; S.date = ''; $('#rl').innerHTML = listHtml(); $('#detail').innerHTML = detailHtml();
+  const [lo, xe, lt] = await Promise.all([sb.from('vw_lotrinhtramdung').select('*').eq('matuyen', code), sb.rpc('fn_xetheotuyen', { p_matuyen: code }), sb.rpc('fn_lichtrinhtheotuyen', { p_matuyen: code })]);
+  const bad = [lo, xe, lt].find(x => x.error); if (bad) return toast('Không tải được tuyến: ' + bad.error.message, true);
+  if (S.sel !== code) return;
+  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data }; $('#detail').innerHTML = detailHtml(); drawMap();
+}
+
+/* ---------- Bản đồ ---------- */
+let map = null;
+const TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const pin = t => L.divIcon({ className: '', html: `<div class="pin">${t}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] });
+function drawMap() {
+  const el = $('#map'); if (map) { map.remove(); map = null; } if (!el || !S.det) return;
+  if (typeof L === 'undefined') { el.textContent = 'Không tải được thư viện bản đồ.'; return; }
+  map = L.map(el, { scrollWheelZoom: false }); L.tileLayer(TILE, { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  const pts = []; S.det.lo.filter(x => x.huongdi === 'Chiều đi').sort((a, b) => a.thututram - b.thututram).forEach(x => {
+    const s = stopOf(x.matram); if (s && s.vido != null && s.kinhdo != null) { const p = [+s.vido, +s.kinhdo]; pts.push(p); L.marker(p, { icon: pin(x.thututram) }).bindPopup(esc(s.tentram)).addTo(map); }
+  });
+  if (!pts.length) return map.setView([10.78, 106.7], 11);
+  const line = L.polyline(pts, { color: '#1b8a5a', weight: 4, dashArray: '6 8' }).addTo(map); map.fitBounds(pts, { padding: [24, 24] });
+  const my = map;
+  if (pts.length > 1) fetch('https://router.project-osrm.org/route/v1/driving/' + pts.map(p => p[1] + ',' + p[0]).join(';') + '?overview=full&geometries=geojson')
+    .then(r => r.json()).then(j => { if (j.code === 'Ok' && map === my) line.setLatLngs(j.routes[0].geometry.coordinates.map(c => [c[1], c[0]])).setStyle({ dashArray: null, weight: 5 }); }).catch(() => {});
+}
+
+/* ---------- Tìm đường (ghi LichSuTraCuu) ---------- */
+function viewPlan() {
+  const o = S.stops.map(s => `<option value="${s.matram}">${esc(s.tentram)}</option>`).join('');
+  return `<div class="panel" style="max-width:760px"><h3>Tìm tuyến đi từ trạm A đến trạm B</h3><div class="row"><select id="pa" aria-label="Trạm đi">${o}</select><span>→</span><select id="pb" aria-label="Trạm đến">${o}</select><button class="btn pri" data-act="plan">Tìm</button></div><div id="planres" style="margin-top:12px"></div></div><div class="panel" id="hist" style="max-width:760px" ${S.me ? '' : 'hidden'}></div>`;
+}
+async function doPlan() {
+  const a = +$('#pa').value, b = +$('#pb').value; if (a === b) return toast('Hai trạm phải khác nhau.', true);
+  const hits = [];
+  for (const r of S.routes) for (const ch of [0, 1]) {
+    const rows = S.ct.filter(c => c.matuyen === r.matuyen && c.chieu === ch).sort((x, y) => x.thututram - y.thututram), i = rows.findIndex(c => c.matram === a), j = rows.findIndex(c => c.matram === b);
+    if (i >= 0 && j > i) hits.push({ r, ch, n: j - i, km: (rows[j].khoangcachtudiemdau - rows[i].khoangcachtudiemdau).toFixed(1), min: rows.slice(i + 1, j + 1).reduce((s, c) => s + c.thoigiandukientutramtruoc, 0) });
+  }
+  $('#planres').innerHTML = hits.length ? tbl([['Tuyến', h => `<b>${esc(h.r.matuyen)}</b> ${esc(h.r.tentuyen)}`], ['Chiều', h => h.ch ? 'Về' : 'Đi'], ['Số trạm', h => h.n], ['Quãng đường', h => h.km + ' km'], ['Dự kiến', h => h.min + ' phút'], ['Giá vé', h => money(h.r.giave)]], hits) : '<p class="muted">Không có tuyến đi trực tiếp giữa hai trạm này.</p>';
+  const { error } = await sb.from('lichsutracuu').insert({ manguoidung: S.me?.manguoidung ?? null, diemdi: stopOf(a).tentram, diemden: stopOf(b).tentram });
+  if (!error) loadHist();
+}
+async function loadHist() {
+  if (!S.me || !$('#hist')) return;
+  const { data } = await sb.from('lichsutracuu').select('*').eq('manguoidung', S.me.manguoidung).order('malichsu', { ascending: false }).limit(5);
+  $('#hist').innerHTML = '<h3>Lịch sử tra cứu của bạn</h3>' + tbl([['Từ', h => esc(h.diemdi)], ['Đến', h => esc(h.diemden)], ['Lúc', h => when(h.thoigiantra)]], data || []);
+}
+
+/* ---------- Tài khoản (số điện thoại + mật khẩu, không cần email) ---------- */
+const EMAIL_DOMAIN = 'busline.example.com';
+const normPhone = v => { let d = String(v).replace(/[^\d+]/g, ''); if (d.startsWith('+84')) d = '0' + d.slice(3); else if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2); return d.replace(/\D/g, ''); };
+const viewName = u => u?.email?.endsWith('@' + EMAIL_DOMAIN) ? u.email.split('@')[0] : u?.email;
+function viewAcc() {
+  if (!S.user) {
+    const su = S.signup;
+    return `<section class="panel" style="max-width:420px;margin:auto"><h3>${su ? 'Tạo tài khoản' : 'Đăng nhập'}</h3><form id="af">
+      ${su ? '<div class="f"><label>Họ và tên</label><input name="n" required maxlength="100" autocomplete="name"></div>' : ''}
+      <div class="f"><label>Số điện thoại${su ? '' : ' (quản trị viên dùng email)'}</label><input name="u" required placeholder="0901234567" autocomplete="username"></div>
+      <div class="f"><label>Mật khẩu${su ? ' (tối thiểu 8 ký tự)' : ''}</label><input type="password" name="p" required minlength="${su ? 8 : 1}" autocomplete="${su ? 'new-password' : 'current-password'}"></div>
+      <div class="acts"><button type="button" class="btn" data-act="sw">${su ? 'Đã có tài khoản' : 'Tạo tài khoản'}</button><button class="btn pri">${su ? 'Đăng ký' : 'Đăng nhập'}</button></div></form>
+      <p class="muted" style="font-size:13px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p></section>`;
+  }
+  if (!S.me) return '<section class="panel"><h3>Tài khoản quản trị</h3><p class="muted">Tài khoản này chưa có hồ sơ khách hàng. Dùng tab “Nhân viên” nếu bạn có quyền.</p></section>';
+  const m = S.me;
+  return `<div class="grid" style="grid-template-columns:340px 1fr"><div><section class="panel"><h3>Thông tin cá nhân</h3><form id="pf">
+    <div class="f"><label>Họ và tên</label><input name="hoten" value="${esc(m.hoten)}" required maxlength="100"></div>
+    <div class="f"><label>Số điện thoại</label><input name="sdt" value="${esc(m.sodienthoai)}" inputmode="tel"></div>
+    <div class="f"><label>Mã người dùng / Ngày tạo</label><div class="muted">#${m.manguoidung} · ${when(m.ngaytao)}</div></div>
+    <div class="acts"><button class="btn pri">Lưu</button></div></form>
+    <p>Số dư ví: <b>${money(m.sodu)}</b></p><p class="muted" style="font-size:13px">Nạp tiền do quản trị viên thực hiện (chưa nối cổng MoMo/VNPay).</p></section>
+    <section class="panel"><h3>Gửi phản hồi, góp ý</h3><form id="ff"><div class="f"><label>Tuyến (không bắt buộc)</label><select name="t"><option value="">—</option>${S.routes.map(r => `<option value="${esc(r.matuyen)}">${esc(r.matuyen)} · ${esc(r.tentuyen)}</option>`).join('')}</select></div>
+    <div class="f"><label>Nội dung</label><textarea name="c" rows="3" required></textarea></div><div class="acts"><button class="btn pri">Gửi</button></div></form><div id="a-fb"></div></section></div>
+    <div><section class="panel"><h3>Vé điện tử</h3><div id="a-ve"></div></section><section class="panel"><h3>Vé tháng</h3><div id="a-vt"></div></section>
+    <section class="panel"><h3>Giao dịch gần đây</h3><div id="a-gd"></div></section>
+    <section class="panel"><h3>Yêu thích</h3><p>Tuyến: ${[...S.favR].map(esc).join(', ') || '—'}</p><p>Trạm: ${[...S.favS].map(id => esc(stopOf(id)?.tentram)).join(', ') || '—'}</p></section></div></div>`;
+}
+async function loadAcc() {
+  const id = S.me.manguoidung;
+  const [ve, vt, gd, fb] = await Promise.all([sb.from('vedientu').select('*').eq('manguoidung', id).order('mave', { ascending: false }), sb.from('vw_danhsachvethang').select('*').eq('manguoidung', id),
+    sb.from('giaodich').select('*').eq('manguoidung', id).order('magiaodich', { ascending: false }).limit(10), sb.from('phanhoigopy').select('*').eq('manguoidung', id).order('maphanhoi', { ascending: false }).limit(5)]);
+  if (!$('#a-ve')) return;
+  $('#a-ve').innerHTML = tbl([['Tuyến', v => esc(trim(v.matuyen))], ['Mã QR (đưa cho tài xế)', v => `<code>${esc(v.maqr)}</code>`], ['Giá', v => money(v.giave)], ['Trạng thái', v => badge(v.trangthai)], ['Mua lúc', v => when(v.thoigianmua)]], ve.data || []);
+  $('#a-vt').innerHTML = tbl([['Tuyến', v => esc(v.tentuyen || 'Toàn mạng lưới')], ['Đối tượng', v => esc(v.loaidoituong)], ['Từ', v => v.ngaybatdau], ['Đến', v => v.ngayhethan], ['Tình trạng', v => esc(v.tinhtrangthucte)]], vt.data || []);
+  $('#a-gd').innerHTML = tbl([['Lúc', g => when(g.thoigiangiaodich)], ['Loại', g => esc(g.loaigiaodich)], ['Số tiền', g => money(g.sotien)], ['Thanh toán', g => esc(g.phuongthucthanhtoan)], ['Trạng thái', g => badge(g.trangthai)]], gd.data || []);
+  $('#a-fb').innerHTML = (fb.data || []).length ? '<h3 style="margin-top:12px">Phản hồi đã gửi</h3>' + tbl([['Nội dung', f => esc(f.noidung)], ['Trạng thái', f => badge(f.trangthai)]], fb.data) : '';
+}
+
+/* ---------- Nhân viên / quản trị ---------- */
+function viewStaff() {
+  if (!staff()) return '<section class="panel"><p class="muted">Bạn không có quyền truy cập mục này.</p></section>';
+  return `<div class="grid" style="grid-template-columns:1fr 1fr"><section class="panel"><h3>Quét vé QR</h3><form id="qf"><div class="f"><label>Mã QR của vé</label><input name="qr" required></div><div class="acts"><button class="btn pri">Kiểm tra vé</button></div></form></section>
+    <section class="panel"><h3>Cập nhật trạng thái lịch trình</h3><form id="sf"><div class="f"><select name="lt" id="ltsel" required></select></div>
+    <div class="f"><select name="st"><option>Đúng giờ</option><option>Trễ giờ</option><option>Đã hoàn thành</option><option>Đã hủy</option></select></div><div class="acts"><button class="btn pri">Cập nhật</button></div></form></section></div>
+    ${S.role === 'admin' ? `<section class="panel"><h3>Doanh thu vé lượt theo tuyến</h3><div id="s1"></div></section><section class="panel"><h3>Số chuyến của tài xế</h3><div id="s2"></div></section>
+    <section class="panel"><h3>Phản hồi của khách</h3><div id="s3"></div></section>
+    <section class="panel" style="max-width:520px"><h3>Nạp tiền vào ví khách</h3><form id="nf"><div class="f"><label>Mã người dùng</label><input type="number" name="u" required></div><div class="f"><label>Số tiền (đ)</label><input type="number" name="m" min="1000" required></div>
+    <div class="f"><label>Phương thức</label><select name="p"><option>MOMO</option><option>VNPAY</option></select></div><div class="f"><label>Mã tham chiếu giao dịch</label><input name="r" required></div><div class="acts"><button class="btn pri">Nạp tiền</button></div></form></section>` : ''}`;
+}
+async function loadStaff() {
+  if (!staff()) return;
+  const lt = await sb.from('lichtrinh').select('malichtrinh,matuyen,thoigiandi,trangthai').order('thoigiandi');
+  if ($('#ltsel')) $('#ltsel').innerHTML = (lt.data || []).map(x => `<option value="${esc(trim(x.malichtrinh))}">${esc(trim(x.malichtrinh))} · ${esc(trim(x.matuyen))} · ${when(x.thoigiandi)} · ${esc(x.trangthai)}</option>`).join('');
+  if (S.role !== 'admin') return;
+  const [a, b, c] = await Promise.all([sb.from('vw_doanhthutheotuyen').select('*'), sb.from('vw_thongkechuyentaixe').select('*'), sb.from('phanhoigopy').select('*').order('maphanhoi', { ascending: false }).limit(20)]);
+  if (!$('#s1')) return;
+  $('#s1').innerHTML = tbl([['Tuyến', x => esc(trim(x.matuyen)) + ' ' + esc(x.tentuyen)], ['Số vé đã bán', x => x.tongsovelotdaban], ['Doanh thu', x => money(x.doanhthuveluot)]], a.data || []);
+  $('#s2').innerHTML = tbl([['Tài xế', x => esc(x.hoten)], ['Điện thoại', x => esc(x.sodienthoai)], ['Tổng số chuyến', x => x.tongsochuyen]], b.data || []);
+  $('#s3').innerHTML = tbl([['Khách', x => '#' + x.manguoidung], ['Tuyến', x => esc(trim(x.matuyen)) || '—'], ['Nội dung', x => esc(x.noidung)], ['Xử lý', x => `<select data-fb="${x.maphanhoi}" aria-label="Trạng thái phản hồi">${['ChoXuLy', 'DangXacMinh', 'DaGiaiQuyet'].map(s => `<option ${s === x.trangthai ? 'selected' : ''}>${s}</option>`).join('')}</select>`]], c.data || []);
+}
+
+/* ---------- Sự kiện ---------- */
+async function reloadMe() { await loadUser(); render(); }
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-tab],[data-sel],[data-act]'); if (!b) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; return render(); }
+  if (b.dataset.sel) return pick(b.dataset.sel);
+  const a = b.dataset.act;
+  if (a === 'sw') { S.signup = !S.signup; render(); }
+  else if (a === 'out') { await sb.auth.signOut(); S.tab = 'routes'; await reloadMe(); }
+  else if (a === 'plan') doPlan();
+  else if (a === 'buy') {
+    const r = S.routes.find(x => x.matuyen === S.sel); if (!confirm(`Mua 1 vé lượt tuyến ${r.matuyen} giá ${money(r.giave)} bằng số dư ví?`)) return;
+    const { data, error } = await sb.rpc('sp_muaveluotvinoibo', { p_manguoidung: S.me.manguoidung, p_matuyen: r.matuyen });
+    if (error) return toast(error.message, true);
+    toast('Mua vé thành công. Mã QR: ' + data[0].maqr); await loadUser(); render();
+  } else if (a === 'favr' || a === 'favs') {
+    const isR = a === 'favr', set = isR ? S.favR : S.favS, val = isR ? S.sel : +b.dataset.id, q = sb.from(isR ? 'tuyenyeuthich' : 'tramyeuthich'), col = isR ? 'matuyen' : 'matram';
+    const { error } = set.has(val) ? await q.delete().eq('manguoidung', S.me.manguoidung).eq(col, val) : await q.insert({ manguoidung: S.me.manguoidung, [col]: val });
+    if (error) return toast(error.message, true); set.has(val) ? set.delete(val) : set.add(val);
+    $('#rl').innerHTML = listHtml(); $('#detail').innerHTML = detailHtml(); drawMap();
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; $('#rl').innerHTML = listHtml(); } });
+document.addEventListener('change', async e => {
+  if (e.target.id === 'dsel') { S.date = e.target.value; $('#detail').innerHTML = detailHtml(); drawMap(); }
+  if (e.target.dataset.fb) {
+    const { data, error } = await sb.from('phanhoigopy').update({ trangthai: e.target.value }).eq('maphanhoi', +e.target.dataset.fb).select();
+    error || !data?.length ? toast('Không cập nhật được phản hồi.', true) : toast('Đã cập nhật.');
+  }
+});
+document.addEventListener('submit', async e => {
+  e.preventDefault(); const f = new FormData(e.target), id = e.target.id;
+  if (id === 'af') {
+    const u = f.get('u').trim(), isMail = u.includes('@'), phone = normPhone(u);
+    if (!isMail && !/^0\d{8,10}$/.test(phone)) return toast('Số điện thoại không hợp lệ (ví dụ 0901234567).', true);
+    const email = isMail ? u : phone + '@' + EMAIL_DOMAIN;
+    if (S.signup) {
+      if (isMail) return toast('Vui lòng đăng ký bằng số điện thoại.', true);
+      const { data, error } = await sb.auth.signUp({ email, password: f.get('p'), options: { data: { full_name: f.get('n').trim(), phone } } });
+      if (error) return toast(/already|registered/i.test(error.message) ? 'Số điện thoại này đã có tài khoản. Hãy đăng nhập.' : 'Đăng ký thất bại: ' + error.message, true);
+      if (!data.session) return toast('Đã tạo tài khoản nhưng chưa đăng nhập được. Cần tắt “Confirm email” trong Supabase.', true);
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: f.get('p') });
+      if (error) return toast('Đăng nhập thất bại: sai số điện thoại hoặc mật khẩu.', true);
+    }
+    S.tab = 'acc'; await reloadMe();
+  } else if (id === 'pf') {
+    const sdt = normPhone(f.get('sdt')); if (sdt && !/^\d{8,15}$/.test(sdt)) return toast('Số điện thoại không hợp lệ.', true);
+    const { error } = await sb.from('nguoidung').update({ hoten: f.get('hoten').trim(), sodienthoai: sdt || null }).eq('manguoidung', S.me.manguoidung);
+    error ? toast('Lưu thất bại: ' + error.message, true) : (toast('Đã lưu thông tin.'), reloadMe());
+  } else if (id === 'ff') {
+    const { error } = await sb.from('phanhoigopy').insert({ manguoidung: S.me.manguoidung, matuyen: f.get('t') || null, noidung: f.get('c').trim() });
+    error ? toast('Gửi thất bại: ' + error.message, true) : (toast('Đã gửi phản hồi. Cảm ơn bạn!'), e.target.reset(), loadAcc());
+  } else if (id === 'qf') {
+    const { data, error } = await sb.rpc('sp_quetveqr', { p_maqr: f.get('qr').trim() });
+    error ? toast(error.message, true) : toast(data[0].ketqua);
+  } else if (id === 'sf') {
+    const { error } = await sb.rpc('sp_capnhattrangthailichtrinh', { p_malichtrinh: f.get('lt'), p_trangthai: f.get('st') });
+    error ? toast(error.message, true) : (toast('Cập nhật trạng thái thành công.'), loadStaff());
+  } else if (id === 'nf') {
+    const { error } = await sb.rpc('sp_naptienvi', { p_manguoidung: +f.get('u'), p_sotien: +f.get('m'), p_phuongthuc: f.get('p'), p_mathamchieu: f.get('r').trim() });
+    error ? toast(error.message, true) : (toast('Nạp tiền thành công.'), e.target.reset());
+  }
+});
+
+(async function init() {
+  if (!ok) { $('#cfg').hidden = false; return render(); }
+  await loadCatalog(); await loadUser(); render();
+  sb.auth.onAuthStateChange(async (ev, ses) => { if ((ses?.user?.id ?? null) !== (S.user?.id ?? null)) { await loadUser(); render(); } });
+})();
+</script>
+</body>
+</html>
