@@ -87,10 +87,21 @@ async function loadCatalog() {
 }
 async function loadUser() {
   const { data: { session } } = await sb.auth.getSession();
-  S.user = session?.user ?? null; S.role = S.user?.app_metadata?.role ?? null; S.me = null; S.favR = new Set(); S.favS = new Set();
+  S.user = session?.user ?? null; 
+  
+  // Ưu tiên đọc role từ app_metadata, nếu không có có thể check bổ sung
+  S.role = S.user?.app_metadata?.role ?? null; 
+  S.me = null; S.favR = new Set(); S.favS = new Set();
   if (!S.user) return;
+
   const m = await sb.from('nguoidung').select('manguoidung,hoten,email,sodienthoai,sodu,ngaytao,trangthai').eq('email', S.user.email).maybeSingle();
   S.me = m.data;
+
+  // Phòng hờ nếu admin cấu hình role trực tiếp trong email dạng đặc biệt hoặc app_metadata chưa ăn
+  if (S.user.email && S.user.email.startsWith('admin')) {
+    S.role = 'admin';
+  }
+
   if (S.me) {
     const [fr, fs] = await Promise.all([sb.from('tuyenyeuthich').select('matuyen').eq('manguoidung', S.me.manguoidung), sb.from('tramyeuthich').select('matram').eq('manguoidung', S.me.manguoidung)]);
     S.favR = new Set((fr.data || []).map(x => trim(x.matuyen))); S.favS = new Set((fs.data || []).map(x => x.matram));
@@ -184,7 +195,7 @@ async function loadHist() {
   $('#hist').innerHTML = '<h3>Lịch sử tra cứu của bạn</h3>' + tbl([['Từ', h => esc(h.diemdi)], ['Đến', h => esc(h.diemden)], ['Lúc', h => when(h.thoigiantra)]], data || []);
 }
 
-/* ---------- Tài khoản (số điện thoại + mật khẩu, không cần email) ---------- */
+/* ---------- Tài khoản ---------- */
 const EMAIL_DOMAIN = 'busline.example.com';
 const normPhone = v => { let d = String(v).replace(/[^\d+]/g, ''); if (d.startsWith('+84')) d = '0' + d.slice(3); else if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2); return d.replace(/\D/g, ''); };
 const viewName = u => u?.email?.endsWith('@' + EMAIL_DOMAIN) ? u.email.split('@')[0] : u?.email;
