@@ -88,8 +88,6 @@ async function loadCatalog() {
 async function loadUser() {
   const { data: { session } } = await sb.auth.getSession();
   S.user = session?.user ?? null; 
-  
-  // Ưu tiên đọc role từ app_metadata, nếu không có có thể check bổ sung
   S.role = S.user?.app_metadata?.role ?? null; 
   S.me = null; S.favR = new Set(); S.favS = new Set();
   if (!S.user) return;
@@ -97,10 +95,16 @@ async function loadUser() {
   const m = await sb.from('nguoidung').select('manguoidung,hoten,email,sodienthoai,sodu,ngaytao,trangthai').eq('email', S.user.email).maybeSingle();
   S.me = m.data;
 
-  // Phòng hờ nếu admin cấu hình role trực tiếp trong email dạng đặc biệt hoặc app_metadata chưa ăn
-  if (S.user.email && S.user.email.startsWith('admin')) {
+  // --- DANH SÁCH EMAIL QUẢN TRỊ VIÊN ---
+  // Hãy thay thế 'email_admin_cua_ban@gmail.com' bằng đúng email bạn dùng để đăng nhập
+  const ADMIN_EMAILS = [
+    'email_admin_cua_ban@gmail.com',
+    'admin@busline.example.com'
+  ];
+  if (S.user.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(S.user.email.toLowerCase())) {
     S.role = 'admin';
   }
+  // ------------------------------------
 
   if (S.me) {
     const [fr, fs] = await Promise.all([sb.from('tuyenyeuthich').select('matuyen').eq('manguoidung', S.me.manguoidung), sb.from('tramyeuthich').select('matram').eq('manguoidung', S.me.manguoidung)]);
@@ -300,7 +304,7 @@ document.addEventListener('submit', async e => {
       if (!data.session) return toast('Đã tạo tài khoản nhưng chưa đăng nhập được. Cần tắt “Confirm email” trong Supabase.', true);
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: f.get('p') });
-      if (error) return toast('Đăng nhập thất bại: sai số điện thoại hoặc mật khẩu.', true);
+      if (error) return toast('Đăng nhập thất bại: sai email/số điện thoại hoặc mật khẩu.', true);
     }
     S.tab = 'acc'; await reloadMe();
   } else if (id === 'pf') {
