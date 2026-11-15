@@ -2,118 +2,147 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
 <title>BusLine — Tra cứu xe buýt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--ink:#10232b;--bg:#eef1f2;--board:#0d3a40;--amber:#ffc72c;--line:#d5dcdf;--ok:#1b8a5a;--danger:#c8403a;--card:#fff}
+/* ===== MOBILE FIRST: kiểu mặc định = điện thoại; các @media (min-width) bên dưới mở rộng dần cho máy tính bảng và máy tính ===== */
+:root{--ink:#10232b;--bg:#eef1f2;--board:#0d3a40;--amber:#ffc72c;--line:#d5dcdf;--ok:#1b8a5a;--danger:#c8403a;--card:#fff;--muted:#5d6d74;--nav-h:60px;--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;max-width:100vw;overflow-x:hidden}
-body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font:16px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + var(--safe-b))}
 button,input,select,textarea{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+h3{font-size:clamp(16px,1.2vw + 12px,19px);line-height:1.3}
+.muted,.ritem small{color:var(--muted)}.ritem small{display:block;margin-top:2px}
 
-/* Header & Navigation */
-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
-.brand{font-weight:700;font-size:20px;display:flex;gap:10px;align-items:center}
+/* Thanh trên cùng */
+header{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + var(--safe-t)) max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));background:var(--card);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;font-size:clamp(17px,4.5vw,20px);display:flex;gap:10px;align-items:center}
 .brand i{width:28px;height:28px;border-radius:7px;background:var(--amber);display:grid;place-items:center;font-style:normal;font-size:15px}
-nav{display:flex;gap:6px;flex-wrap:wrap}
-nav button{border:0;background:transparent;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;transition:background 0.15s}
-nav button.on{background:var(--ink);color:#fff}
-#auth{display:flex;align-items:center;gap:8px}
+#auth{display:flex;align-items:center;gap:8px;min-width:0}
+#auth .muted{max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;margin:0!important}
 
-/* Buttons & Inputs */
-.btn{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px}
-.btn:hover{border-color:var(--ink)}
+/* Điều hướng: thanh tab dưới đáy trên điện thoại */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;background:var(--card);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) var(--safe-b) env(safe-area-inset-left);box-shadow:0 -2px 10px rgba(16,35,43,.06)}
+nav button{flex:1;min-width:0;min-height:var(--nav-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer}
+nav button .ic{font-size:21px;line-height:1}
+nav button.on{color:var(--ok);font-weight:700;box-shadow:inset 0 3px 0 var(--ok)}
+
+/* Nút và ô nhập: vùng chạm tối thiểu 44px, chữ 16px để iOS không tự phóng to */
+.btn{border:1px solid var(--line);background:var(--card);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
 .btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-.btn.sm{padding:4px 10px;font-size:13px;min-height:30px}
+.btn.sm{padding:6px 12px;font-size:14px;min-height:36px}
+.btn:active{transform:scale(.98)}
+input,select,textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:16px}
+textarea{min-height:88px}
+.f{margin-bottom:12px}.f label{display:block;font-size:14px;font-weight:500;margin-bottom:4px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}.acts .btn{flex:1 1 140px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.plan-row{flex-direction:column;align-items:stretch}.plan-row span{display:none}
+.only-m{float:right;margin-left:8px}
 
-main{width:100%;max-width:1120px;margin:0 auto;padding:20px 16px 60px}
+/* Bố cục: 1 cột trên điện thoại */
+main{width:100%;max-width:1120px;margin:0 auto;padding:14px max(12px,env(safe-area-inset-right)) 24px max(12px,env(safe-area-inset-left))}
+.grid,.grid-acc,.grid-2{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;width:100%}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;width:100%;overflow:hidden}
+.panel h3{margin-bottom:10px}
+.warn{background:#fdf3d8;border:1px solid #e8a317;border-radius:10px;padding:12px 16px;margin-bottom:16px}
+#detail{scroll-margin-top:72px}
 
-/* Layout Grids (Đảm bảo min-width: 0 để bảng con cuộn ngang thay vì kéo giãn trang) */
-.grid{display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start;width:100%}
-.grid-acc{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start;width:100%}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;width:100%}
-.grid > *,.grid-acc > *,.grid-2 > *{min-width:0}
-
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;width:100%;overflow:hidden}
-.panel h3{font-size:17px;margin-bottom:10px}
-input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:15px}
-.f{margin-bottom:12px}.f label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:120px}.row>span,.row>button{flex:0 0 auto}
-.acts{display:flex;gap:8px;justify-content:flex-end;margin:12px 0 4px;flex-wrap:wrap}
-
-/* Route List & Map */
-.rlist{display:flex;flex-direction:column;gap:6px;max-height:66vh;overflow-y:auto;margin-top:10px;padding-right:2px}
-.ritem{display:grid;grid-template-columns:48px 1fr;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;cursor:pointer;width:100%}
+/* Danh sách tuyến và bản đồ */
+.rlist{display:flex;flex-direction:column;gap:8px;max-height:42dvh;overflow-y:auto;margin-top:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.ritem{display:grid;grid-template-columns:48px 1fr;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;cursor:pointer;width:100%;min-height:52px}
 .ritem.on{border-color:var(--ok);background:#f0faf5}
 .ritem b.code{background:var(--board);color:#fff;border-radius:6px;text-align:center;align-self:start;padding:3px 0;font-size:14px}
-.ritem small,.muted{color:#5d6d74}.ritem small{display:block;margin-top:2px}
-#map{height:320px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5;width:100%}
-.pin{width:24px;height:24px;border-radius:50%;background:var(--amber);color:var(--ink);font:700 12px/1 "Be Vietnam Pro",sans-serif;display:grid;place-items:center;border:2px solid var(--board)}
+#map{height:260px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5;width:100%}
+.pin{width:26px;height:26px;border-radius:50%;background:var(--amber);color:var(--ink);font:700 12px/1 "Be Vietnam Pro",sans-serif;display:grid;place-items:center;border:2px solid var(--board)}
+.dsel{margin-bottom:8px}
 
-/* Tables & Badges */
+/* Bảng: trên điện thoại mỗi dòng thành một thẻ (có nhãn cột); từ 600px trở lên là bảng thường */
 .scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{color:#5d6d74;font-weight:600;white-space:nowrap}
+.stack,.stack tbody,.stack tr,.stack td{display:block;width:100%}
+.stack thead{display:none}
+.stack tr{border:1px solid var(--line);border-radius:10px;padding:6px 12px;margin-bottom:8px;background:#fff}
+.stack td{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border:0;text-align:right;overflow-wrap:anywhere}
+.stack td[data-l]:not([data-l=""])::before{content:attr(data-l);color:var(--muted);font-weight:600;text-align:left;flex:0 0 40%}
+.stack td:empty{display:none}
+th{color:var(--muted);font-weight:600;white-space:nowrap;text-align:left}
 .badge{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#e3f4ea;color:var(--ok);white-space:nowrap;display:inline-block}
 .badge.late{background:#fdecc8;color:#8a5a00}.badge.bad{background:#fbe0de;color:var(--danger)}.badge.done{background:#e6eaec;color:#4a5a61}
 code{background:var(--bg);padding:2px 6px;border-radius:5px;word-break:break-all;font-size:13px}
 
-/* Toast & Warning */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;width:max-content;max-width:92vw}
-#toast div{background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+/* Thông báo nổi: nằm trên thanh tab */
+#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;width:max-content;max-width:92vw}
+#toast div{background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.2)}
 #toast div.err{background:var(--danger)}
-.warn{background:#fdf3d8;border:1px solid #e8a317;border-radius:10px;padding:12px 16px;margin-bottom:16px}
 
-/* Modal Popup */
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(16,35,43,0.55);display:flex;justify-content:center;align-items:center;padding:16px;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.2s ease}
+/* Popup: kéo từ đáy lên trên điện thoại (bottom sheet) */
+.modal-overlay{position:fixed;inset:0;background:rgba(16,35,43,.55);display:flex;align-items:flex-end;justify-content:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .2s ease}
 .modal-overlay.active{opacity:1;pointer-events:auto}
-.modal-box{background:var(--card);padding:22px;border-radius:14px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,0.2);position:relative;transform:translateY(-10px);transition:transform 0.2s ease}
-.modal-overlay.active .modal-box{transform:translateY(0)}
-.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:#5d6d74;padding:4px}
-.modal-close:hover{color:var(--ink)}
-
-/* Quick Top-up Grid */
+.modal-box{background:var(--card);width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;padding:20px 18px calc(20px + var(--safe-b));border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);position:relative;transform:translateY(24px);transition:transform .2s ease}
+.modal-overlay.active .modal-box{transform:none}
+.modal-close{position:absolute;top:6px;right:8px;background:none;border:none;font-size:26px;line-height:1;cursor:pointer;color:var(--muted);width:44px;height:44px}
 .amt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.amt-btn{border:1px solid var(--line);background:var(--bg);padding:8px 4px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;text-align:center}
-.amt-btn:hover,.amt-btn:active{border-color:var(--ok);background:#e3f4ea}
+.amt-btn{border:1px solid var(--line);background:var(--bg);min-height:44px;padding:8px 4px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;text-align:center}
+.amt-btn:active{border-color:var(--ok);background:#e3f4ea}
 
-/* ---------- TỐI ƯU GIAO DIỆN ĐIỆN THOẠI (MOBILE) ---------- */
-@media(max-width:820px){
-  header{padding:10px 14px;gap:8px}
-  .brand{font-size:18px}
-  nav{order:3;width:100%;display:flex;overflow-x:auto;padding-top:6px;border-top:1px solid var(--bg);gap:4px;-webkit-overflow-scrolling:touch}
-  nav button{flex:1;white-space:nowrap;text-align:center;padding:8px 10px;font-size:14px}
-  #auth{margin-left:auto}
-  #auth span{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-
-  main{padding:14px 12px 50px}
-  .grid,.grid-acc,.grid-2{grid-template-columns:1fr;gap:14px}
-  .panel{padding:14px;margin-bottom:12px}
-
-  .rlist{max-height:240px;border:1px solid var(--bg);border-radius:8px;padding:4px}
-  #map{height:240px}
-
-  .plan-row{flex-direction:column;align-items:stretch}
-  .plan-row span{display:none}
-  .plan-row button{width:100%;margin-top:4px}
-
-  input,select,textarea{font-size:16px}
-  .acts{justify-content:stretch}
-  .acts .btn{flex:1}
+/* ===== Điện thoại lớn / máy tính bảng dọc (từ 600px) ===== */
+@media (min-width:600px){
+  main{padding:20px 20px 32px}
+  .panel{padding:16px}
+  .acts{justify-content:flex-end}.acts .btn{flex:0 0 auto}
+  .plan-row{flex-direction:row;align-items:center}.plan-row>*{flex:1}.plan-row span{display:block;flex:0 0 auto}.plan-row button{flex:0 0 auto}
+  .rlist{max-height:50dvh}
+  #map{height:340px}
+  .dsel{max-width:240px}
+  #auth .muted{max-width:none}
+  /* bảng trở lại dạng thường */
+  .stack{display:table}.stack thead{display:table-header-group}.stack tbody{display:table-row-group}
+  .stack tr{display:table-row;border:0;border-radius:0;padding:0;margin:0;background:none}
+  .stack td{display:table-cell;width:auto;padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .stack td:empty{display:table-cell}
+  .stack td[data-l]::before{display:none}
+  /* popup ở giữa màn hình */
+  .modal-overlay{align-items:center;padding:16px}
+  .modal-box{max-width:420px;padding:24px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.2);transform:translateY(-10px)}
+  .modal-close{top:10px;right:12px;width:36px;height:36px}
+  .grid-2{grid-template-columns:1fr 1fr;gap:18px}
 }
+
+/* ===== Máy tính bảng ngang / máy tính (từ 900px): thanh tab chuyển lên đầu trang ===== */
+@media (min-width:900px){
+  body{padding-bottom:0;font-size:15px}
+  header{padding:12px 24px}
+  nav{position:static;z-index:auto;background:none;border:0;box-shadow:none;padding:0;gap:6px}
+  nav button{flex:none;min-height:0;flex-direction:row;gap:0;padding:8px 14px;border-radius:8px;font-size:15px;color:inherit}
+  nav button .ic{display:none}
+  nav button.on{background:var(--ink);color:#fff;box-shadow:none}
+  .only-m{display:none}
+  input,select,textarea{font-size:15px;min-height:40px}
+  .btn{min-height:40px}.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+  .grid{grid-template-columns:minmax(280px,330px) minmax(0,1fr);gap:18px}
+  .grid-acc{grid-template-columns:minmax(300px,340px) minmax(0,1fr);gap:18px}
+  .rlist{max-height:66vh}
+  #map{height:380px}
+  #toast{bottom:20px}
+}
+@media (min-width:1200px){ main{padding:28px 24px 48px} }
+@media (hover:hover){ .btn:hover,nav button:not(.on):hover{border-color:var(--ink)} .ritem:hover{border-color:var(--ok)} nav button:not(.on):hover{background:var(--bg)} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;scroll-behavior:auto!important} }
 </style>
 </head>
 <body>
 <header>
   <div class="brand"><i>B</i>BusLine</div>
-  <nav id="nav"></nav>
+  <nav id="nav" aria-label="Điều hướng chính"></nav>
   <div id="auth"></div>
 </header>
 <main><div id="cfg" class="warn" hidden>Chưa kết nối Supabase. Mở <b>index.html</b>, điền <code>SUPABASE_URL</code> và <code>SUPABASE_ANON_KEY</code> ở đầu phần script.</div><div id="view"></div></main>
@@ -166,7 +195,7 @@ code{background:var(--bg);padding:2px 6px;border-radius:5px;word-break:break-all
         <button type="submit" class="btn ok">Xác nhận nạp tiền</button>
       </div>
     </form>
-    <p class="muted" style="font-size:12px;margin-top:10px">Số dư sẽ được cộng ngay lập tức vào ví của bạn để mua vé xe.</p>
+    <p class="muted" style="font-size:12px;margin-top:10px">Chế độ mô phỏng: số dư được cộng ngay nhưng chưa thu tiền thật qua MoMo/VNPay. Hạn mức 5.000 đ đến 500.000 đ mỗi lần, tối đa 2.000.000 đ mỗi ngày.</p>
   </div>
 </div>
 
@@ -183,7 +212,7 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u030
 const money = n => Number(n).toLocaleString('vi-VN') + ' đ';
 const when = s => new Date(s).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
 const badge = t => `<span class="badge ${/Trễ|DANG_CHO|ChoXu|HET_HAN/.test(t) ? 'late' : /hủy|THAT_BAI|BI_KHOA/.test(t) ? 'bad' : /hoàn thành|DA_QUET|DaGiai/.test(t) ? 'done' : ''}">${esc(t)}</span>`;
-const tbl = (cols, rows) => `<div class="scroll"><table><thead><tr>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}" class="muted">Chưa có dữ liệu.</td></tr>`}</tbody></table></div>`;
+const tbl = (cols, rows) => `<div class="scroll"><table class="stack"><thead><tr>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td data-l="${esc(c[0])}">${c[1](r)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}" class="muted">Chưa có dữ liệu.</td></tr>`}</tbody></table></div>`;
 function toast(m, err) { const d = document.createElement('div'); d.textContent = m; if (err) d.className = 'err'; $('#toast').append(d); setTimeout(() => d.remove(), 4000); }
 
 const ok = !SUPABASE_URL.includes('YOUR-');
@@ -230,8 +259,8 @@ async function loadUser(directUser = null) {
 
 /* ---------- Khung trang ---------- */
 function render() {
-  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường']].concat(staff() ? [['staff', 'Nhân viên']] : []).concat(S.user ? [['acc', 'Tài khoản']] : []);
-  $('#nav').innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('');
+  const tabs = [['routes', 'Tuyến xe', '🚌'], ['plan', 'Tìm đường', '🧭']].concat(staff() ? [['staff', 'Nhân viên', '🛠️']] : []).concat(S.user ? [['acc', 'Tài khoản', '👤']] : []);
+  $('#nav').innerHTML = tabs.map(([k, l, ic]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}" ${S.tab === k ? 'aria-current="page"' : ''}><span class="ic" aria-hidden="true">${ic}</span><span>${l}</span></button>`).join('');
   $('#auth').innerHTML = S.user ? `<span class="muted">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn sm" data-act="out">Đăng xuất</button>` : '<button class="btn pri sm" data-act="open-modal">Đăng nhập</button>';
   
   if (S.tab === 'acc' && !S.user) S.tab = 'routes';
@@ -254,7 +283,7 @@ const viewRoutes = () => `<div class="grid"><section class="panel"><h3>Tra cứu
 function detailHtml() {
   const r = S.routes.find(x => x.matuyen === S.sel);
   if (!r) return '<p class="muted">Chọn một tuyến để xem lộ trình, xe và lịch trình.</p>';
-  let h = `<h3>Tuyến ${esc(r.matuyen)}: ${esc(r.tentuyen)}</h3><p>Giá vé: <b>${money(r.giave)}</b></p><div class="acts" style="justify-content:flex-start">
+  let h = `<button class="btn sm only-m" data-act="top" aria-label="Về danh sách tuyến">↑ Danh sách</button><h3>Tuyến ${esc(r.matuyen)}: ${esc(r.tentuyen)}</h3><p>Giá vé: <b>${money(r.giave)}</b></p><div class="acts" style="justify-content:flex-start">
     ${S.me ? `<button class="btn pri" data-act="buy">Mua vé (${money(S.me.sodu)})</button><button class="btn ok" data-act="open-topup">+ Nạp tiền</button><button class="btn" data-act="favr">${S.favR.has(r.matuyen) ? '★ Đã lưu' : '☆ Yêu thích'}</button>` : '<span class="muted">Đăng nhập để mua vé và lưu tuyến yêu thích.</span>'}</div>`;
   const d = S.det; if (!d || d.code !== r.matuyen) return h + '<p class="muted">Đang tải…</p>';
   h += '<div id="map"></div>';
@@ -266,19 +295,22 @@ function detailHtml() {
   if (!d.lo.length) h += '<p class="muted">Tuyến này chưa có dữ liệu trạm dừng.</p>';
   h += `<h3 style="margin-top:16px">Xe buýt</h3><p>${d.xe.map(x => `${esc(trim(x.bienso))} (${esc(x.loaixe)}, ${x.soghe} chỗ)`).join(' · ') || '—'}</p>`;
   const days = [...new Set(d.lt.map(x => x.thoigiandi.slice(0, 10)))], list = d.lt.filter(x => !S.date || x.thoigiandi.startsWith(S.date));
-  h += `<h3 style="margin-top:16px">Lịch trình</h3><select id="dsel" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
+  h += `<h3 style="margin-top:16px">Lịch trình theo ngày đi</h3><select id="dsel" class="dsel" aria-label="Chọn ngày đi"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
     tbl([['Mã', x => esc(trim(x.malichtrinh))], ['Giờ đi', x => when(x.thoigiandi)], ['Giờ đến', x => when(x.thoigianden)], ['Phút', x => Math.round((new Date(x.thoigianden) - new Date(x.thoigiandi)) / 60000)], ['Xe', x => esc(trim(x.bienso))], ['Tài xế', x => esc(x.tentaixe)], ['Trạng thái', x => badge(x.trangthai)]], list);
   return h;
 }
 async function pick(code) {
   S.sel = code; S.det = null; S.date = ''; $('#rl').innerHTML = listHtml(); $('#detail').innerHTML = detailHtml();
+  if (matchMedia('(max-width:899px)').matches) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (window.innerWidth <= 820) {
     $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   const [lo, xe, lt] = await Promise.all([sb.from('vw_lotrinhtramdung').select('*').eq('matuyen', code), sb.rpc('fn_xetheotuyen', { p_matuyen: code }), sb.rpc('fn_lichtrinhtheotuyen', { p_matuyen: code })]);
   const bad = [lo, xe, lt].find(x => x.error); if (bad) return toast('Không tải được tuyến: ' + bad.error.message, true);
   if (S.sel !== code) return;
-  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data }; $('#detail').innerHTML = detailHtml(); drawMap();
+  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data };
+  const t0 = new Date().toLocaleDateString('sv-SE'); S.date = lt.data.some(x => x.thoigiandi.startsWith(t0)) ? t0 : '';
+  $('#detail').innerHTML = detailHtml(); drawMap();
 }
 
 /* ---------- Bản đồ ---------- */
@@ -467,6 +499,7 @@ function updateModalUI() {
   if (subBtn) subBtn.textContent = S.signup ? 'Đăng ký' : 'Đăng nhập';
 }
 
+document.addEventListener('click', e => { if (e.target.closest('[data-act="top"]')) $('#rl').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; $('#rl').innerHTML = listHtml(); } });
 document.addEventListener('change', async e => {
   if (e.target.id === 'dsel') { S.date = e.target.value; $('#detail').innerHTML = detailHtml(); drawMap(); }
