@@ -11,12 +11,13 @@
 <style>
 :root{--ink:#10232b;--bg:#eef1f2;--board:#0d3a40;--amber:#ffc72c;--line:#d5dcdf;--ok:#1b8a5a;--danger:#c8403a;--card:#fff}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+html,body{width:100%;max-width:100vw;overflow-x:hidden}
+body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--ok);outline-offset:2px}
 
 /* Header & Navigation */
-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
 .brand{font-weight:700;font-size:20px;display:flex;gap:10px;align-items:center}
 .brand i{width:28px;height:28px;border-radius:7px;background:var(--amber);display:grid;place-items:center;font-style:normal;font-size:15px}
 nav{display:flex;gap:6px;flex-wrap:wrap}
@@ -31,14 +32,15 @@ nav button.on{background:var(--ink);color:#fff}
 .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
 .btn.sm{padding:4px 10px;font-size:13px;min-height:30px}
 
-main{max-width:1120px;margin:0 auto;padding:20px 16px 60px}
+main{width:100%;max-width:1120px;margin:0 auto;padding:20px 16px 60px}
 
-/* Layout Grids (Dùng class thay vì inline style để responsive chuẩn) */
-.grid{display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start}
-.grid-acc{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+/* Layout Grids (Đảm bảo min-width: 0 để bảng con cuộn ngang thay vì kéo giãn trang) */
+.grid{display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start;width:100%}
+.grid-acc{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start;width:100%}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;width:100%}
+.grid > *,.grid-acc > *,.grid-2 > *{min-width:0}
 
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;width:100%;overflow:hidden}
 .panel h3{font-size:17px;margin-bottom:10px}
 input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:15px}
 .f{margin-bottom:12px}.f label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
@@ -51,11 +53,11 @@ input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);b
 .ritem.on{border-color:var(--ok);background:#f0faf5}
 .ritem b.code{background:var(--board);color:#fff;border-radius:6px;text-align:center;align-self:start;padding:3px 0;font-size:14px}
 .ritem small,.muted{color:#5d6d74}.ritem small{display:block;margin-top:2px}
-#map{height:320px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5}
+#map{height:320px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5;width:100%}
 .pin{width:24px;height:24px;border-radius:50%;background:var(--amber);color:var(--ink);font:700 12px/1 "Be Vietnam Pro",sans-serif;display:grid;place-items:center;border:2px solid var(--board)}
 
 /* Tables & Badges */
-.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{color:#5d6d74;font-weight:600;white-space:nowrap}
@@ -95,16 +97,13 @@ code{background:var(--bg);padding:2px 6px;border-radius:5px;word-break:break-all
   .grid,.grid-acc,.grid-2{grid-template-columns:1fr;gap:14px}
   .panel{padding:14px;margin-bottom:12px}
 
-  /* Giới hạn chiều cao danh sách tuyến trên mobile để không phải cuộn quá dài */
   .rlist{max-height:240px;border:1px solid var(--bg);border-radius:8px;padding:4px}
   #map{height:240px}
 
-  /* Form tìm đường xếp dọc gọn gàng */
   .plan-row{flex-direction:column;align-items:stretch}
   .plan-row span{display:none}
   .plan-row button{width:100%;margin-top:4px}
 
-  /* Ngăn iOS tự động zoom khi chạm vào ô input */
   input,select,textarea{font-size:16px}
   .acts{justify-content:stretch}
   .acts .btn{flex:1}
@@ -395,7 +394,6 @@ async function reloadMe(directUser = null) {
 }
 
 document.addEventListener('click', async e => {
-  // Đóng modal khi bấm ra vùng nền tối bên ngoài hộp thoại
   if (e.target.classList.contains('modal-overlay')) {
     e.target.classList.remove('active');
     return;
