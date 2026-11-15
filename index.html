@@ -45,6 +45,15 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9}
 #toast div{background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;max-width:90vw}#toast div.err{background:var(--danger)}
 .warn{background:#fdf3d8;border:1px solid #e8a317;border-radius:10px;padding:12px 16px;margin-bottom:16px}
+
+/* CSS cho Modal Đăng nhập dạng Popup nhỏ */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(16,35,43,0.5);display:flex;justify-content:center;align-items:center;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.2s ease}
+.modal-overlay.active{opacity:1;pointer-events:auto}
+.modal-box{background:var(--card);padding:24px;border-radius:14px;width:100%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.15);position:relative;transform:translateY(-10px);transition:transform 0.2s ease}
+.modal-overlay.active .modal-box{transform:translateY(0)}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#5d6d74}
+.modal-close:hover{color:var(--ink)}
+
 @media(max-width:820px){.grid{grid-template-columns:1fr}.rlist{max-height:none}header{padding:10px 14px}}
 </style>
 </head>
@@ -56,6 +65,24 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
 </header>
 <main><div id="cfg" class="warn" hidden>Chưa kết nối Supabase. Mở <b>index.html</b>, điền <code>SUPABASE_URL</code> và <code>SUPABASE_ANON_KEY</code> ở đầu phần script.</div><div id="view"></div></main>
 <div id="toast" role="status"></div>
+
+<!-- Modal Popup Đăng nhập -->
+<div id="auth-modal" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" data-act="close-modal">&times;</button>
+    <h3 id="modal-title" style="margin-bottom:12px;font-size:18px">Đăng nhập</h3>
+    <form id="af">
+      <div id="name-field" class="f" style="display:none"><label>Họ và tên</label><input name="n" maxlength="100" autocomplete="name"></div>
+      <div class="f"><label id="user-label">Số điện thoại (quản trị viên dùng email)</label><input name="u" required placeholder="0901234567" autocomplete="username"></div>
+      <div class="f"><label id="pass-label">Mật khẩu</label><input type="password" name="p" required autocomplete="current-password"></div>
+      <div class="acts">
+        <button type="button" class="btn" data-act="sw">Tạo tài khoản</button>
+        <button type="submit" class="btn pri">Đăng nhập</button>
+      </div>
+    </form>
+    <p class="muted" style="font-size:12px;margin-top:8px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -115,12 +142,15 @@ async function loadUser(directUser = null) {
   }
 }
 
-/* ---------- Khung trang ---------- */
+/* ---------- Khung trang (Đã bỏ tab 'acc' trên menu chính) ---------- */
 function render() {
-  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường'], ['acc', 'Tài khoản']].concat(staff() ? [['staff', 'Nhân viên']] : []);
+  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường']].concat(staff() ? [['staff', 'Nhân viên']] : []).concat(S.user ? [['acc', 'Tài khoản cá nhân']] : []);
   $('#nav').innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('');
-  $('#auth').innerHTML = S.user ? `<span class="muted" style="margin-right:8px">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn" data-act="out">Đăng xuất</button>` : '<button class="btn" data-tab="acc">Đăng nhập</button>';
+  $('#auth').innerHTML = S.user ? `<span class="muted" style="margin-right:8px">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn" data-act="out">Đăng xuất</button>` : '<button class="btn pri" data-act="open-modal">Đăng nhập</button>';
+  
+  if (S.tab === 'acc' && !S.user) S.tab = 'routes'; // Tránh kẹt ở tab tài khoản khi đăng xuất
   $('#view').innerHTML = S.tab === 'routes' ? viewRoutes() : S.tab === 'plan' ? viewPlan() : S.tab === 'acc' ? viewAcc() : viewStaff();
+  
   if (S.tab === 'routes' && S.sel) { $('#detail').innerHTML = detailHtml(); drawMap(); }
   if (S.tab === 'plan') { $('#pb').selectedIndex = 1; loadHist(); }
   if (S.tab === 'acc' && S.me) loadAcc();
@@ -180,7 +210,7 @@ function drawMap() {
     .then(r => r.json()).then(j => { if (j.code === 'Ok' && map === my) line.setLatLngs(j.routes[0].geometry.coordinates.map(c => [c[1], c[0]])).setStyle({ dashArray: null, weight: 5 }); }).catch(() => {});
 }
 
-/* ---------- Tìm đường (ghi LichSuTraCuu) ---------- */
+/* ---------- Tìm đường ---------- */
 function viewPlan() {
   const o = S.stops.map(s => `<option value="${s.matram}">${esc(s.tentram)}</option>`).join('');
   return `<div class="panel" style="max-width:760px"><h3>Tìm tuyến đi từ trạm A đến trạm B</h3><div class="row"><select id="pa" aria-label="Trạm đi">${o}</select><span>→</span><select id="pb" aria-label="Trạm đến">${o}</select><button class="btn pri" data-act="plan">Tìm</button></div><div id="planres" style="margin-top:12px"></div></div><div class="panel" id="hist" style="max-width:760px" ${S.me ? '' : 'hidden'}></div>`;
@@ -202,20 +232,11 @@ async function loadHist() {
   $('#hist').innerHTML = '<h3>Lịch sử tra cứu của bạn</h3>' + tbl([['Từ', h => esc(h.diemdi)], ['Đến', h => esc(h.diemden)], ['Lúc', h => when(h.thoigiantra)]], data || []);
 }
 
-/* ---------- Tài khoản ---------- */
+/* ---------- Tài khoản cá nhân (hiển thị khi vào tab Tài khoản) ---------- */
 const EMAIL_DOMAIN = 'busline.example.com';
 const normPhone = v => { let d = String(v).replace(/[^\d+]/g, ''); if (d.startsWith('+84')) d = '0' + d.slice(3); else if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2); return d.replace(/\D/g, ''); };
 const viewName = u => u?.email?.endsWith('@' + EMAIL_DOMAIN) ? u.email.split('@')[0] : u?.email;
 function viewAcc() {
-  if (!S.user) {
-    const su = S.signup;
-    return `<section class="panel" style="max-width:420px;margin:auto"><h3>${su ? 'Tạo tài khoản' : 'Đăng nhập'}</h3><form id="af">
-      ${su ? '<div class="f"><label>Họ và tên</label><input name="n" required maxlength="100" autocomplete="name"></div>' : ''}
-      <div class="f"><label>Số điện thoại${su ? '' : ' (quản trị viên dùng email)'}</label><input name="u" required placeholder="0901234567" autocomplete="username"></div>
-      <div class="f"><label>Mật khẩu${su ? ' (tối thiểu 8 ký tự)' : ''}</label><input type="password" name="p" required minlength="${su ? 8 : 1}" autocomplete="${su ? 'new-password' : 'current-password'}"></div>
-      <div class="acts"><button type="button" class="btn" data-act="sw">${su ? 'Đã có tài khoản' : 'Tạo tài khoản'}</button><button type="submit" class="btn pri">${su ? 'Đăng ký' : 'Đăng nhập'}</button></div></form>
-      <p class="muted" style="font-size:13px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p></section>`;
-  }
   if (!S.me) return '<section class="panel"><h3>Tài khoản quản trị</h3><p class="muted">Tài khoản này chưa có hồ sơ khách hàng. Dùng tab “Nhân viên” ở thanh menu phía trên để quản lý hệ thống.</p></section>';
   const m = S.me;
   return `<div class="grid" style="grid-template-columns:340px 1fr"><div><section class="panel"><h3>Thông tin cá nhân</h3><form id="pf">
@@ -264,8 +285,14 @@ async function loadStaff() {
   $('#s3').innerHTML = tbl([['Khách', x => '#' + x.manguoidung], ['Tuyến', x => esc(trim(x.matuyen)) || '—'], ['Nội dung', x => esc(x.noidung)], ['Xử lý', x => `<select data-fb="${x.maphanhoi}" aria-label="Trạng thái phản hồi">${['ChoXuLy', 'DangXacMinh', 'DaGiaiQuyet'].map(s => `<option ${s === x.trangthai ? 'selected' : ''}>${s}</option>`).join('')}</select>`]], c.data || []);
 }
 
-/* ---------- Sự kiện ---------- */
+/* ---------- Quản lý Modal & Sự kiện ---------- */
 let isSubmittingAuth = false;
+
+function toggleModal(show) {
+  const modal = $('#auth-modal');
+  if (show) modal.classList.add('active');
+  else modal.classList.remove('active');
+}
 
 async function reloadMe(directUser = null) { 
   await loadUser(directUser); 
@@ -274,28 +301,29 @@ async function reloadMe(directUser = null) {
 
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tab],[data-sel],[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+
   if (b.dataset.tab) { S.tab = b.dataset.tab; return render(); }
   if (b.dataset.sel) return pick(b.dataset.sel);
-  const a = b.dataset.act;
-  if (a === 'sw') { S.signup = !S.signup; render(); }
-  else if (a === 'out') {
+
+  if (a === 'open-modal') {
+    S.signup = false;
+    updateModalUI();
+    toggleModal(true);
+  } else if (a === 'close-modal') {
+    toggleModal(false);
+  } else if (a === 'sw') {
+    S.signup = !S.signup;
+    updateModalUI();
+  } else if (a === 'out') {
     isSubmittingAuth = true;
-    try {
-      await sb.auth.signOut();
-    } catch (err) {
-      console.error('Lỗi đăng xuất:', err);
-    }
-    S.user = null;
-    S.me = null;
-    S.role = null;
-    S.favR = new Set();
-    S.favS = new Set();
+    try { await sb.auth.signOut(); } catch (err) { console.error(err); }
+    S.user = null; S.me = null; S.role = null; S.favR = new Set(); S.favS = new Set();
     S.tab = 'routes';
     render();
     toast('Đã đăng xuất.');
     isSubmittingAuth = false;
-  }
-  else if (a === 'plan') doPlan();
+  } else if (a === 'plan') doPlan();
   else if (a === 'buy') {
     const r = S.routes.find(x => x.matuyen === S.sel); if (!confirm(`Mua 1 vé lượt tuyến ${r.matuyen} giá ${money(r.giave)} bằng số dư ví?`)) return;
     const { data, error } = await sb.rpc('sp_muaveluotvinoibo', { p_manguoidung: S.me.manguoidung, p_matuyen: r.matuyen });
@@ -308,6 +336,18 @@ document.addEventListener('click', async e => {
     $('#rl').innerHTML = listHtml(); $('#detail').innerHTML = detailHtml(); drawMap();
   }
 });
+
+function updateModalUI() {
+  $('#modal-title').textContent = S.signup ? 'Tạo tài khoản' : 'Đăng nhập';
+  $('#name-field').style.display = S.signup ? 'block' : 'none';
+  $('#user-label').textContent = S.signup ? 'Số điện thoại' : 'Số điện thoại (quản trị viên dùng email)';
+  $('#pass-label').textContent = S.signup ? 'Mật khẩu (tối thiểu 8 ký tự)' : 'Mật khẩu';
+  const swBtn = document.querySelector('[data-act="sw"]');
+  if (swBtn) swBtn.textContent = S.signup ? 'Đã có tài khoản' : 'Tạo tài khoản';
+  const subBtn = document.querySelector('#af button[type="submit"]');
+  if (subBtn) subBtn.textContent = S.signup ? 'Đăng ký' : 'Đăng nhập';
+}
+
 document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; $('#rl').innerHTML = listHtml(); } });
 document.addEventListener('change', async e => {
   if (e.target.id === 'dsel') { S.date = e.target.value; $('#detail').innerHTML = detailHtml(); drawMap(); }
@@ -361,7 +401,8 @@ document.addEventListener('submit', async e => {
       }
 
       await loadUser(loggedUser);
-      S.tab = staff() ? 'staff' : 'acc';
+      toggleModal(false); // Đóng popup mượt mà
+      S.tab = staff() ? 'staff' : 'routes';
       render();
       toast('Đăng nhập thành công!');
     } finally {
