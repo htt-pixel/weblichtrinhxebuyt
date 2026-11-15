@@ -11,56 +11,104 @@
 <style>
 :root{--ink:#10232b;--bg:#eef1f2;--board:#0d3a40;--amber:#ffc72c;--line:#d5dcdf;--ok:#1b8a5a;--danger:#c8403a;--card:#fff}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+body{font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--ok);outline-offset:2px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+
+/* Header & Navigation */
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
 .brand{font-weight:700;font-size:20px;display:flex;gap:10px;align-items:center}
-.brand i{width:26px;height:26px;border-radius:7px;background:var(--amber);display:grid;place-items:center;font-style:normal;font-size:14px}
+.brand i{width:28px;height:28px;border-radius:7px;background:var(--amber);display:grid;place-items:center;font-style:normal;font-size:15px}
 nav{display:flex;gap:6px;flex-wrap:wrap}
-nav button{border:0;background:transparent;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+nav button{border:0;background:transparent;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;transition:background 0.15s}
 nav button.on{background:var(--ink);color:#fff}
-.btn{border:1px solid var(--line);background:var(--card);padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:500}
-.btn:hover{border-color:var(--ink)}.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.sm{padding:3px 9px;font-size:13px}
+#auth{display:flex;align-items:center;gap:8px}
+
+/* Buttons & Inputs */
+.btn{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-main{max-width:1120px;margin:0 auto;padding:22px 18px 60px}
-.grid{display:grid;grid-template-columns:330px 1fr;gap:18px}
+.btn.sm{padding:4px 10px;font-size:13px;min-height:30px}
+
+main{max-width:1120px;margin:0 auto;padding:20px 16px 60px}
+
+/* Layout Grids (Dùng class thay vì inline style để responsive chuẩn) */
+.grid{display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start}
+.grid-acc{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-.panel h3{font-size:17px;margin-bottom:8px}
-input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
-.f{margin-bottom:10px}.f label{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
+.panel h3{font-size:17px;margin-bottom:10px}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:15px}
+.f{margin-bottom:12px}.f label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:120px}.row>span,.row>button{flex:0 0 auto}
-.acts{display:flex;gap:8px;justify-content:flex-end;margin:10px 0;flex-wrap:wrap}
-.rlist{display:flex;flex-direction:column;gap:6px;max-height:68vh;overflow:auto;margin-top:10px}
-.ritem{display:grid;grid-template-columns:46px 1fr;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;cursor:pointer;width:100%}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin:12px 0 4px;flex-wrap:wrap}
+
+/* Route List & Map */
+.rlist{display:flex;flex-direction:column;gap:6px;max-height:66vh;overflow-y:auto;margin-top:10px;padding-right:2px}
+.ritem{display:grid;grid-template-columns:48px 1fr;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;cursor:pointer;width:100%}
 .ritem.on{border-color:var(--ok);background:#f0faf5}
-.ritem b.code{background:var(--board);color:#fff;border-radius:6px;text-align:center;align-self:start;padding:2px 0}
-.ritem small,.muted{color:#5d6d74}.ritem small{display:block}
+.ritem b.code{background:var(--board);color:#fff;border-radius:6px;text-align:center;align-self:start;padding:3px 0;font-size:14px}
+.ritem small,.muted{color:#5d6d74}.ritem small{display:block;margin-top:2px}
 #map{height:320px;border-radius:10px;margin-top:12px;z-index:0;background:#dde3e5}
 .pin{width:24px;height:24px;border-radius:50%;background:var(--amber);color:var(--ink);font:700 12px/1 "Be Vietnam Pro",sans-serif;display:grid;place-items:center;border:2px solid var(--board)}
-.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#5d6d74;font-weight:600;white-space:nowrap}
-.badge{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#e3f4ea;color:var(--ok);white-space:nowrap}
+
+/* Tables & Badges */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:#5d6d74;font-weight:600;white-space:nowrap}
+.badge{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#e3f4ea;color:var(--ok);white-space:nowrap;display:inline-block}
 .badge.late{background:#fdecc8;color:#8a5a00}.badge.bad{background:#fbe0de;color:var(--danger)}.badge.done{background:#e6eaec;color:#4a5a61}
-code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999}
-#toast div{background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;max-width:90vw}#toast div.err{background:var(--danger)}
+code{background:var(--bg);padding:2px 6px;border-radius:5px;word-break:break-all;font-size:13px}
+
+/* Toast & Warning */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;width:max-content;max-width:92vw}
+#toast div{background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+#toast div.err{background:var(--danger)}
 .warn{background:#fdf3d8;border:1px solid #e8a317;border-radius:10px;padding:12px 16px;margin-bottom:16px}
 
 /* Modal Popup */
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(16,35,43,0.5);display:flex;justify-content:center;align-items:center;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.2s ease}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(16,35,43,0.55);display:flex;justify-content:center;align-items:center;padding:16px;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.2s ease}
 .modal-overlay.active{opacity:1;pointer-events:auto}
-.modal-box{background:var(--card);padding:24px;border-radius:14px;width:100%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.15);position:relative;transform:translateY(-10px);transition:transform 0.2s ease}
+.modal-box{background:var(--card);padding:22px;border-radius:14px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,0.2);position:relative;transform:translateY(-10px);transition:transform 0.2s ease}
 .modal-overlay.active .modal-box{transform:translateY(0)}
-.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#5d6d74}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:#5d6d74;padding:4px}
 .modal-close:hover{color:var(--ink)}
 
-/* Nút chọn mệnh giá nạp nhanh */
-.amt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-.amt-btn{border:1px solid var(--line);background:var(--bg);padding:6px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;text-align:center}
-.amt-btn:hover{border-color:var(--ok);background:#e3f4ea}
+/* Quick Top-up Grid */
+.amt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.amt-btn{border:1px solid var(--line);background:var(--bg);padding:8px 4px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;text-align:center}
+.amt-btn:hover,.amt-btn:active{border-color:var(--ok);background:#e3f4ea}
 
-@media(max-width:820px){.grid{grid-template-columns:1fr}.rlist{max-height:none}header{padding:10px 14px}}
+/* ---------- TỐI ƯU GIAO DIỆN ĐIỆN THOẠI (MOBILE) ---------- */
+@media(max-width:820px){
+  header{padding:10px 14px;gap:8px}
+  .brand{font-size:18px}
+  nav{order:3;width:100%;display:flex;overflow-x:auto;padding-top:6px;border-top:1px solid var(--bg);gap:4px;-webkit-overflow-scrolling:touch}
+  nav button{flex:1;white-space:nowrap;text-align:center;padding:8px 10px;font-size:14px}
+  #auth{margin-left:auto}
+  #auth span{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+
+  main{padding:14px 12px 50px}
+  .grid,.grid-acc,.grid-2{grid-template-columns:1fr;gap:14px}
+  .panel{padding:14px;margin-bottom:12px}
+
+  /* Giới hạn chiều cao danh sách tuyến trên mobile để không phải cuộn quá dài */
+  .rlist{max-height:240px;border:1px solid var(--bg);border-radius:8px;padding:4px}
+  #map{height:240px}
+
+  /* Form tìm đường xếp dọc gọn gàng */
+  .plan-row{flex-direction:column;align-items:stretch}
+  .plan-row span{display:none}
+  .plan-row button{width:100%;margin-top:4px}
+
+  /* Ngăn iOS tự động zoom khi chạm vào ô input */
+  input,select,textarea{font-size:16px}
+  .acts{justify-content:stretch}
+  .acts .btn{flex:1}
+}
 </style>
 </head>
 <body>
@@ -75,8 +123,8 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
 <!-- Modal Đăng nhập -->
 <div id="auth-modal" class="modal-overlay">
   <div class="modal-box">
-    <button class="modal-close" data-act="close-modal">&times;</button>
-    <h3 id="modal-title" style="margin-bottom:12px;font-size:18px">Đăng nhập</h3>
+    <button class="modal-close" data-act="close-modal" aria-label="Đóng">&times;</button>
+    <h3 id="modal-title" style="margin-bottom:14px;font-size:18px">Đăng nhập</h3>
     <form id="af">
       <div id="name-field" class="f" style="display:none"><label>Họ và tên</label><input name="n" maxlength="100" autocomplete="name"></div>
       <div class="f"><label id="user-label">Số điện thoại (quản trị viên dùng email)</label><input name="u" required placeholder="0901234567" autocomplete="username"></div>
@@ -86,15 +134,15 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
         <button type="submit" class="btn pri">Đăng nhập</button>
       </div>
     </form>
-    <p class="muted" style="font-size:12px;margin-top:8px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p>
+    <p class="muted" style="font-size:12px;margin-top:10px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p>
   </div>
 </div>
 
 <!-- Modal Nạp Tiền Online -->
 <div id="topup-modal" class="modal-overlay">
   <div class="modal-box">
-    <button class="modal-close" data-act="close-topup">&times;</button>
-    <h3 style="margin-bottom:12px;font-size:18px">Nạp tiền vào ví BusLine</h3>
+    <button class="modal-close" data-act="close-topup" aria-label="Đóng">&times;</button>
+    <h3 style="margin-bottom:14px;font-size:18px">Nạp tiền vào ví BusLine</h3>
     <form id="tf">
       <div class="f">
         <label>Chọn nhanh mệnh giá</label>
@@ -107,7 +155,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
           <button type="button" class="amt-btn" data-amt="500000">500.000 đ</button>
         </div>
       </div>
-      <div class="f"><label>Số tiền muốn nạp (đ)</label><input type="number" id="topup-amt" name="m" min="5000" step="1000" required placeholder="Tối thiểu 5.000 đ"></div>
+      <div class="f"><label>Số tiền muốn nạp (đ)</label><input type="number" id="topup-amt" name="m" min="5000" step="1000" required placeholder="Tối thiểu 5.000 đ" inputmode="numeric"></div>
       <div class="f"><label>Phương thức thanh toán</label>
         <select name="p">
           <option value="MOMO">Ví điện tử MoMo</option>
@@ -119,7 +167,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
         <button type="submit" class="btn ok">Xác nhận nạp tiền</button>
       </div>
     </form>
-    <p class="muted" style="font-size:12px;margin-top:8px">Chế độ mô phỏng: số dư được cộng ngay nhưng chưa thu tiền thật qua MoMo/VNPay. Hạn mức 5.000 đ đến 500.000 đ mỗi lần, tối đa 2.000.000 đ mỗi ngày.</p>
+    <p class="muted" style="font-size:12px;margin-top:10px">Số dư sẽ được cộng ngay lập tức vào ví của bạn để mua vé xe.</p>
   </div>
 </div>
 
@@ -183,9 +231,9 @@ async function loadUser(directUser = null) {
 
 /* ---------- Khung trang ---------- */
 function render() {
-  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường']].concat(staff() ? [['staff', 'Nhân viên']] : []).concat(S.user ? [['acc', 'Tài khoản cá nhân']] : []);
+  const tabs = [['routes', 'Tuyến xe'], ['plan', 'Tìm đường']].concat(staff() ? [['staff', 'Nhân viên']] : []).concat(S.user ? [['acc', 'Tài khoản']] : []);
   $('#nav').innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('');
-  $('#auth').innerHTML = S.user ? `<span class="muted" style="margin-right:8px">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn" data-act="out">Đăng xuất</button>` : '<button class="btn pri" data-act="open-modal">Đăng nhập</button>';
+  $('#auth').innerHTML = S.user ? `<span class="muted">${esc(S.me?.hoten || viewName(S.user))}</span><button class="btn sm" data-act="out">Đăng xuất</button>` : '<button class="btn pri sm" data-act="open-modal">Đăng nhập</button>';
   
   if (S.tab === 'acc' && !S.user) S.tab = 'routes';
   $('#view').innerHTML = S.tab === 'routes' ? viewRoutes() : S.tab === 'plan' ? viewPlan() : S.tab === 'acc' ? viewAcc() : viewStaff();
@@ -208,29 +256,30 @@ function detailHtml() {
   const r = S.routes.find(x => x.matuyen === S.sel);
   if (!r) return '<p class="muted">Chọn một tuyến để xem lộ trình, xe và lịch trình.</p>';
   let h = `<h3>Tuyến ${esc(r.matuyen)}: ${esc(r.tentuyen)}</h3><p>Giá vé: <b>${money(r.giave)}</b></p><div class="acts" style="justify-content:flex-start">
-    ${S.me ? `<button class="btn pri" data-act="buy">Mua vé lượt bằng ví (${money(S.me.sodu)})</button><button class="btn ok" data-act="open-topup">+ Nạp thêm tiền</button><button class="btn" data-act="favr">${S.favR.has(r.matuyen) ? '★ Bỏ yêu thích' : '☆ Yêu thích'}</button>` : '<span class="muted">Đăng nhập để mua vé và lưu tuyến yêu thích.</span>'}</div>`;
+    ${S.me ? `<button class="btn pri" data-act="buy">Mua vé (${money(S.me.sodu)})</button><button class="btn ok" data-act="open-topup">+ Nạp tiền</button><button class="btn" data-act="favr">${S.favR.has(r.matuyen) ? '★ Đã lưu' : '☆ Yêu thích'}</button>` : '<span class="muted">Đăng nhập để mua vé và lưu tuyến yêu thích.</span>'}</div>`;
   const d = S.det; if (!d || d.code !== r.matuyen) return h + '<p class="muted">Đang tải…</p>';
   h += '<div id="map"></div>';
   for (const dir of ['Chiều đi', 'Chiều về']) {
     const rows = d.lo.filter(x => x.huongdi === dir).sort((a, b) => a.thututram - b.thututram); if (!rows.length) continue;
-    h += `<h3 style="margin-top:16px">${dir}</h3>` + tbl([['#', x => x.thututram], ['Trạm dừng', x => `${esc(x.tentram)}<br><small class="muted">${esc(x.diachi)}</small>`], ['Km từ đầu', x => x.khoangcachtudiemdau], ['Phút từ trạm trước', x => x.thoigiandukientutramtruoc],
+    h += `<h3 style="margin-top:16px">${dir}</h3>` + tbl([['#', x => x.thututram], ['Trạm dừng', x => `${esc(x.tentram)}<br><small class="muted">${esc(x.diachi)}</small>`], ['Km', x => x.khoangcachtudiemdau], ['Phút', x => x.thoigiandukientutramtruoc],
       ['', x => S.me ? `<button class="btn sm" data-act="favs" data-id="${x.matram}" aria-label="Yêu thích trạm">${S.favS.has(x.matram) ? '★' : '☆'}</button>` : '']], rows);
   }
   if (!d.lo.length) h += '<p class="muted">Tuyến này chưa có dữ liệu trạm dừng.</p>';
   h += `<h3 style="margin-top:16px">Xe buýt</h3><p>${d.xe.map(x => `${esc(trim(x.bienso))} (${esc(x.loaixe)}, ${x.soghe} chỗ)`).join(' · ') || '—'}</p>`;
   const days = [...new Set(d.lt.map(x => x.thoigiandi.slice(0, 10)))], list = d.lt.filter(x => !S.date || x.thoigiandi.startsWith(S.date));
-  h += `<h3 style="margin-top:16px">Lịch trình theo ngày đi</h3><select id="dsel" aria-label="Chọn ngày đi" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
+  h += `<h3 style="margin-top:16px">Lịch trình</h3><select id="dsel" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
     tbl([['Mã', x => esc(trim(x.malichtrinh))], ['Giờ đi', x => when(x.thoigiandi)], ['Giờ đến', x => when(x.thoigianden)], ['Phút', x => Math.round((new Date(x.thoigianden) - new Date(x.thoigiandi)) / 60000)], ['Xe', x => esc(trim(x.bienso))], ['Tài xế', x => esc(x.tentaixe)], ['Trạng thái', x => badge(x.trangthai)]], list);
   return h;
 }
 async function pick(code) {
   S.sel = code; S.det = null; S.date = ''; $('#rl').innerHTML = listHtml(); $('#detail').innerHTML = detailHtml();
+  if (window.innerWidth <= 820) {
+    $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   const [lo, xe, lt] = await Promise.all([sb.from('vw_lotrinhtramdung').select('*').eq('matuyen', code), sb.rpc('fn_xetheotuyen', { p_matuyen: code }), sb.rpc('fn_lichtrinhtheotuyen', { p_matuyen: code })]);
   const bad = [lo, xe, lt].find(x => x.error); if (bad) return toast('Không tải được tuyến: ' + bad.error.message, true);
   if (S.sel !== code) return;
-  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data };
-  const t0 = new Date().toLocaleDateString('sv-SE'); S.date = lt.data.some(x => x.thoigiandi.startsWith(t0)) ? t0 : '';
-  $('#detail').innerHTML = detailHtml(); drawMap();
+  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data }; $('#detail').innerHTML = detailHtml(); drawMap();
 }
 
 /* ---------- Bản đồ ---------- */
@@ -254,7 +303,7 @@ function drawMap() {
 /* ---------- Tìm đường ---------- */
 function viewPlan() {
   const o = S.stops.map(s => `<option value="${s.matram}">${esc(s.tentram)}</option>`).join('');
-  return `<div class="panel" style="max-width:760px"><h3>Tìm tuyến đi từ trạm A đến trạm B</h3><div class="row"><select id="pa" aria-label="Trạm đi">${o}</select><span>→</span><select id="pb" aria-label="Trạm đến">${o}</select><button class="btn pri" data-act="plan">Tìm</button></div><div id="planres" style="margin-top:12px"></div></div><div class="panel" id="hist" style="max-width:760px" ${S.me ? '' : 'hidden'}></div>`;
+  return `<div class="panel" style="max-width:760px"><h3>Tìm tuyến đi từ trạm A đến trạm B</h3><div class="row plan-row"><select id="pa" aria-label="Trạm đi">${o}</select><span>→</span><select id="pb" aria-label="Trạm đến">${o}</select><button class="btn pri" data-act="plan">Tìm tuyến</button></div><div id="planres" style="margin-top:12px"></div></div><div class="panel" id="hist" style="max-width:760px" ${S.me ? '' : 'hidden'}></div>`;
 }
 async function doPlan() {
   const a = +$('#pa').value, b = +$('#pb').value; if (a === b) return toast('Hai trạm phải khác nhau.', true);
@@ -263,7 +312,7 @@ async function doPlan() {
     const rows = S.ct.filter(c => c.matuyen === r.matuyen && c.chieu === ch).sort((x, y) => x.thututram - y.thututram), i = rows.findIndex(c => c.matram === a), j = rows.findIndex(c => c.matram === b);
     if (i >= 0 && j > i) hits.push({ r, ch, n: j - i, km: (rows[j].khoangcachtudiemdau - rows[i].khoangcachtudiemdau).toFixed(1), min: rows.slice(i + 1, j + 1).reduce((s, c) => s + c.thoigiandukientutramtruoc, 0) });
   }
-  $('#planres').innerHTML = hits.length ? tbl([['Tuyến', h => `<b>${esc(h.r.matuyen)}</b> ${esc(h.r.tentuyen)}`], ['Chiều', h => h.ch ? 'Về' : 'Đi'], ['Số trạm', h => h.n], ['Quãng đường', h => h.km + ' km'], ['Dự kiến', h => h.min + ' phút'], ['Giá vé', h => money(h.r.giave)]], hits) : '<p class="muted">Không có tuyến đi trực tiếp giữa hai trạm này.</p>';
+  $('#planres').innerHTML = hits.length ? tbl([['Tuyến', h => `<b>${esc(h.r.matuyen)}</b> ${esc(h.r.tentuyen)}`], ['Chiều', h => h.ch ? 'Về' : 'Đi'], ['Trạm', h => h.n], ['Km', h => h.km], ['Phút', h => h.min], ['Giá vé', h => money(h.r.giave)]], hits) : '<p class="muted">Không có tuyến đi trực tiếp giữa hai trạm này.</p>';
   const { error } = await sb.from('lichsutracuu').insert({ manguoidung: S.me?.manguoidung ?? null, diemdi: stopOf(a).tentram, diemden: stopOf(b).tentram });
   if (!error) loadHist();
 }
@@ -280,7 +329,7 @@ const viewName = u => u?.email?.endsWith('@' + EMAIL_DOMAIN) ? u.email.split('@'
 function viewAcc() {
   if (!S.me) return '<section class="panel"><h3>Tài khoản quản trị</h3><p class="muted">Tài khoản này chưa có hồ sơ khách hàng. Dùng tab “Nhân viên” ở thanh menu phía trên để quản lý hệ thống.</p></section>';
   const m = S.me;
-  return `<div class="grid" style="grid-template-columns:340px 1fr"><div>
+  return `<div class="grid-acc"><div>
     <section class="panel" style="background:#f0faf5;border-color:var(--ok)">
       <h3>Ví điện tử BusLine</h3>
       <p style="font-size:22px;font-weight:700;color:var(--ok);margin:6px 0">${money(m.sodu)}</p>
@@ -311,12 +360,12 @@ async function loadAcc() {
 /* ---------- Nhân viên / quản trị ---------- */
 function viewStaff() {
   if (!staff()) return '<section class="panel"><p class="muted">Bạn không có quyền truy cập mục này.</p></section>';
-  return `<div class="grid" style="grid-template-columns:1fr 1fr"><section class="panel"><h3>Quét vé QR</h3><form id="qf"><div class="f"><label>Mã QR của vé</label><input name="qr" required></div><div class="acts"><button class="btn pri">Kiểm tra vé</button></div></form></section>
+  return `<div class="grid-2"><section class="panel"><h3>Quét vé QR</h3><form id="qf"><div class="f"><label>Mã QR của vé</label><input name="qr" required></div><div class="acts"><button class="btn pri">Kiểm tra vé</button></div></form></section>
     <section class="panel"><h3>Cập nhật trạng thái lịch trình</h3><form id="sf"><div class="f"><select name="lt" id="ltsel" required></select></div>
     <div class="f"><select name="st"><option>Đúng giờ</option><option>Trễ giờ</option><option>Đã hoàn thành</option><option>Đã hủy</option></select></div><div class="acts"><button class="btn pri">Cập nhật</button></div></form></section></div>
     ${S.role === 'admin' ? `<section class="panel"><h3>Doanh thu vé lượt theo tuyến</h3><div id="s1"></div></section><section class="panel"><h3>Số chuyến của tài xế</h3><div id="s2"></div></section>
     <section class="panel"><h3>Phản hồi của khách</h3><div id="s3"></div></section>
-    <section class="panel" style="max-width:520px"><h3>Nạp tiền vào ví khách</h3><form id="nf"><div class="f"><label>Mã người dùng</label><input type="number" name="u" required></div><div class="f"><label>Số tiền (đ)</label><input type="number" name="m" min="1000" required></div>
+    <section class="panel" style="max-width:520px"><h3>Nạp tiền vào ví khách</h3><form id="nf"><div class="f"><label>Mã người dùng</label><input type="number" name="u" required inputmode="numeric"></div><div class="f"><label>Số tiền (đ)</label><input type="number" name="m" min="1000" required inputmode="numeric"></div>
     <div class="f"><label>Phương thức</label><select name="p"><option>MOMO</option><option>VNPAY</option></select></div><div class="f"><label>Mã tham chiếu giao dịch</label><input name="r" required></div><div class="acts"><button class="btn pri">Nạp tiền</button></div></form></section>` : ''}`;
 }
 async function loadStaff() {
@@ -326,8 +375,8 @@ async function loadStaff() {
   if (S.role !== 'admin') return;
   const [a, b, c] = await Promise.all([sb.from('vw_doanhthutheotuyen').select('*'), sb.from('vw_thongkechuyentaixe').select('*'), sb.from('phanhoigopy').select('*').order('maphanhoi', { ascending: false }).limit(20)]);
   if (!$('#s1')) return;
-  $('#s1').innerHTML = tbl([['Tuyến', x => esc(trim(x.matuyen)) + ' ' + esc(x.tentuyen)], ['Số vé đã bán', x => x.tongsovelotdaban], ['Doanh thu', x => money(x.doanhthuveluot)]], a.data || []);
-  $('#s2').innerHTML = tbl([['Tài xế', x => esc(x.hoten)], ['Điện thoại', x => esc(x.sodienthoai)], ['Tổng số chuyến', x => x.tongsochuyen]], b.data || []);
+  $('#s1').innerHTML = tbl([['Tuyến', x => esc(trim(x.matuyen)) + ' ' + esc(x.tentuyen)], ['Số vé', x => x.tongsovelotdaban], ['Doanh thu', x => money(x.doanhthuveluot)]], a.data || []);
+  $('#s2').innerHTML = tbl([['Tài xế', x => esc(x.hoten)], ['Điện thoại', x => esc(x.sodienthoai)], ['Số chuyến', x => x.tongsochuyen]], b.data || []);
   $('#s3').innerHTML = tbl([['Khách', x => '#' + x.manguoidung], ['Tuyến', x => esc(trim(x.matuyen)) || '—'], ['Nội dung', x => esc(x.noidung)], ['Xử lý', x => `<select data-fb="${x.maphanhoi}" aria-label="Trạng thái phản hồi">${['ChoXuLy', 'DangXacMinh', 'DaGiaiQuyet'].map(s => `<option ${s === x.trangthai ? 'selected' : ''}>${s}</option>`).join('')}</select>`]], c.data || []);
 }
 
@@ -346,7 +395,12 @@ async function reloadMe(directUser = null) {
 }
 
 document.addEventListener('click', async e => {
-  // Chọn mệnh giá nhanh trong popup nạp tiền
+  // Đóng modal khi bấm ra vùng nền tối bên ngoài hộp thoại
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('active');
+    return;
+  }
+
   const amtBtn = e.target.closest('[data-amt]');
   if (amtBtn) {
     $('#topup-amt').value = amtBtn.dataset.amt;
@@ -480,7 +534,6 @@ document.addEventListener('submit', async e => {
       }
     }
   } else if (id === 'tf') {
-    // Xử lý người dùng tự nạp tiền online
     const btn = e.target.querySelector('button[type="submit"]');
     const oldText = btn.textContent;
     btn.disabled = true;
@@ -489,7 +542,7 @@ document.addEventListener('submit', async e => {
     try {
       const amount = +f.get('m');
       const method = f.get('p');
-      const refCode = 'ONLINE_' + Date.now(); // Sinh mã giao dịch tự động
+      const refCode = 'ONLINE_' + Date.now();
 
       const { error } = await sb.rpc('sp_naptienvi', {
         p_manguoidung: S.me.manguoidung,
@@ -505,7 +558,7 @@ document.addEventListener('submit', async e => {
 
       toggleModal('#topup-modal', false);
       toast(`Nạp thành công ${money(amount)} vào ví!`);
-      await reloadMe(); // Cập nhật lại số dư ví và lịch sử giao dịch ngay lập tức
+      await reloadMe();
     } finally {
       btn.disabled = false;
       btn.textContent = oldText;
