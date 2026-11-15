@@ -392,17 +392,29 @@ async function loadAcc() {
 function viewStaff() {
   if (!staff()) return '<section class="panel"><p class="muted">Bạn không có quyền truy cập mục này.</p></section>';
   return `<div class="grid-2"><section class="panel"><h3>Quét vé QR</h3><form id="qf"><div class="f"><label>Mã QR của vé</label><input name="qr" required></div><div class="acts"><button class="btn pri">Kiểm tra vé</button></div></form></section>
-    <section class="panel"><h3>Cập nhật trạng thái lịch trình</h3><form id="sf"><div class="f"><select name="lt" id="ltsel" required></select></div>
+    <section class="panel"><h3>Cập nhật trạng thái lịch trình</h3><form id="sf">
+    <div class="f"><label for="sr">Tuyến</label><select id="sr">${S.routes.map(r => `<option value="${esc(r.matuyen)}">${esc(r.matuyen)} · ${esc(r.tentuyen)}</option>`).join('')}</select></div>
+    <div class="f"><label for="sd">Ngày đi</label><input type="date" id="sd" value="${new Date().toLocaleDateString('sv-SE')}"></div>
+    <div class="f"><label for="ltsel">Chuyến</label><select name="lt" id="ltsel" required></select></div>
     <div class="f"><select name="st"><option>Đúng giờ</option><option>Trễ giờ</option><option>Đã hoàn thành</option><option>Đã hủy</option></select></div><div class="acts"><button class="btn pri">Cập nhật</button></div></form></section></div>
     ${S.role === 'admin' ? `<section class="panel"><h3>Doanh thu vé lượt theo tuyến</h3><div id="s1"></div></section><section class="panel"><h3>Số chuyến của tài xế</h3><div id="s2"></div></section>
     <section class="panel"><h3>Phản hồi của khách</h3><div id="s3"></div></section>
     <section class="panel" style="max-width:520px"><h3>Nạp tiền vào ví khách</h3><form id="nf"><div class="f"><label>Mã người dùng</label><input type="number" name="u" required inputmode="numeric"></div><div class="f"><label>Số tiền (đ)</label><input type="number" name="m" min="1000" required inputmode="numeric"></div>
     <div class="f"><label>Phương thức</label><select name="p"><option>MOMO</option><option>VNPAY</option></select></div><div class="f"><label>Mã tham chiếu giao dịch</label><input name="r" required></div><div class="acts"><button class="btn pri">Nạp tiền</button></div></form></section>` : ''}`;
 }
+async function fillLt() {
+  const r = $('#sr')?.value, d = $('#sd')?.value, sel = $('#ltsel'); if (!r || !d || !sel) return;
+  const nx = new Date(d + 'T00:00:00'); nx.setDate(nx.getDate() + 1);
+  const { data, error } = await sb.from('lichtrinh').select('malichtrinh,bienso,thoigiandi,trangthai').eq('matuyen', r)
+    .gte('thoigiandi', d + 'T00:00:00').lt('thoigiandi', nx.toLocaleDateString('sv-SE') + 'T00:00:00').order('thoigiandi');
+  if (error) return toast('Không tải được chuyến: ' + error.message, true);
+  sel.innerHTML = data.length ? data.map(x => `<option value="${esc(trim(x.malichtrinh))}">${x.thoigiandi.slice(11, 16)} · xe ${esc(trim(x.bienso))} · ${esc(x.trangthai)}</option>`).join('')
+    : '<option value="" disabled selected>Không có chuyến trong ngày này</option>';
+}
+document.addEventListener('change', e => { if (e.target.id === 'sr' || e.target.id === 'sd') fillLt(); });
 async function loadStaff() {
   if (!staff()) return;
-  const lt = await sb.from('lichtrinh').select('malichtrinh,matuyen,thoigiandi,trangthai').order('thoigiandi');
-  if ($('#ltsel')) $('#ltsel').innerHTML = (lt.data || []).map(x => `<option value="${esc(trim(x.malichtrinh))}">${esc(trim(x.malichtrinh))} · ${esc(trim(x.matuyen))} · ${when(x.thoigiandi)} · ${esc(x.trangthai)}</option>`).join('');
+  fillLt();
   if (S.role !== 'admin') return;
   const [a, b, c] = await Promise.all([sb.from('vw_doanhthutheotuyen').select('*'), sb.from('vw_thongkechuyentaixe').select('*'), sb.from('phanhoigopy').select('*').order('maphanhoi', { ascending: false }).limit(20)]);
   if (!$('#s1')) return;
@@ -606,7 +618,7 @@ document.addEventListener('submit', async e => {
     error ? toast(error.message, true) : toast(data[0].ketqua);
   } else if (id === 'sf') {
     const { error } = await sb.rpc('sp_capnhattrangthailichtrinh', { p_malichtrinh: f.get('lt'), p_trangthai: f.get('st') });
-    error ? toast(error.message, true) : (toast('Cập nhật trạng thái thành công.'), loadStaff());
+    error ? toast(error.message, true) : (toast('Cập nhật trạng thái thành công.'), fillLt());
   } else if (id === 'nf') {
     const { error } = await sb.rpc('sp_naptienvi', { p_manguoidung: +f.get('u'), p_sotien: +f.get('m'), p_phuongthuc: f.get('p'), p_mathamchieu: f.get('r').trim() });
     error ? toast(error.message, true) : (toast('Nạp tiền thành công.'), e.target.reset());
