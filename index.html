@@ -119,7 +119,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-all
         <button type="submit" class="btn ok">Xác nhận nạp tiền</button>
       </div>
     </form>
-    <p class="muted" style="font-size:12px;margin-top:8px">Số dư sẽ được cộng ngay lập tức vào ví của bạn để mua vé xe.</p>
+    <p class="muted" style="font-size:12px;margin-top:8px">Chế độ mô phỏng: số dư được cộng ngay nhưng chưa thu tiền thật qua MoMo/VNPay. Hạn mức 5.000 đ đến 500.000 đ mỗi lần, tối đa 2.000.000 đ mỗi ngày.</p>
   </div>
 </div>
 
@@ -219,7 +219,7 @@ function detailHtml() {
   if (!d.lo.length) h += '<p class="muted">Tuyến này chưa có dữ liệu trạm dừng.</p>';
   h += `<h3 style="margin-top:16px">Xe buýt</h3><p>${d.xe.map(x => `${esc(trim(x.bienso))} (${esc(x.loaixe)}, ${x.soghe} chỗ)`).join(' · ') || '—'}</p>`;
   const days = [...new Set(d.lt.map(x => x.thoigiandi.slice(0, 10)))], list = d.lt.filter(x => !S.date || x.thoigiandi.startsWith(S.date));
-  h += `<h3 style="margin-top:16px">Lịch trình</h3><select id="dsel" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
+  h += `<h3 style="margin-top:16px">Lịch trình theo ngày đi</h3><select id="dsel" aria-label="Chọn ngày đi" style="max-width:220px;margin-bottom:8px"><option value="">Tất cả các ngày</option>${days.map(x => `<option ${x === S.date ? 'selected' : ''}>${x}</option>`).join('')}</select>` +
     tbl([['Mã', x => esc(trim(x.malichtrinh))], ['Giờ đi', x => when(x.thoigiandi)], ['Giờ đến', x => when(x.thoigianden)], ['Phút', x => Math.round((new Date(x.thoigianden) - new Date(x.thoigiandi)) / 60000)], ['Xe', x => esc(trim(x.bienso))], ['Tài xế', x => esc(x.tentaixe)], ['Trạng thái', x => badge(x.trangthai)]], list);
   return h;
 }
@@ -228,7 +228,9 @@ async function pick(code) {
   const [lo, xe, lt] = await Promise.all([sb.from('vw_lotrinhtramdung').select('*').eq('matuyen', code), sb.rpc('fn_xetheotuyen', { p_matuyen: code }), sb.rpc('fn_lichtrinhtheotuyen', { p_matuyen: code })]);
   const bad = [lo, xe, lt].find(x => x.error); if (bad) return toast('Không tải được tuyến: ' + bad.error.message, true);
   if (S.sel !== code) return;
-  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data }; $('#detail').innerHTML = detailHtml(); drawMap();
+  S.det = { code, lo: lo.data, xe: xe.data, lt: lt.data };
+  const t0 = new Date().toLocaleDateString('sv-SE'); S.date = lt.data.some(x => x.thoigiandi.startsWith(t0)) ? t0 : '';
+  $('#detail').innerHTML = detailHtml(); drawMap();
 }
 
 /* ---------- Bản đồ ---------- */
