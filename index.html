@@ -79,32 +79,38 @@ const S = { routes: [], stops: [], ct: [], user: null, me: null, role: null, fav
 const stopOf = id => S.stops.find(s => s.matram === id);
 const staff = () => S.role === 'admin' || S.role === 'driver';
 
+// Danh sách email quản trị viên cố định
+const ADMIN_EMAILS = [
+  'vohoangminh93.tubd@gmail.com',
+  'admin@busline.example.com'
+];
+
 /* ---------- Tải dữ liệu ---------- */
 async function loadCatalog() {
   const [r, t, c] = await Promise.all([sb.from('tuyenxe').select('*').order('matuyen'), sb.from('tramdung').select('*').order('matram'), sb.from('chitiettuyentram').select('*')]);
   const bad = [r, t, c].find(x => x.error); if (bad) return toast('Không tải được dữ liệu: ' + bad.error.message, true);
   S.routes = r.data.map(x => ({ ...x, matuyen: trim(x.matuyen) })); S.stops = t.data; S.ct = c.data.map(x => ({ ...x, matuyen: trim(x.matuyen) }));
 }
-async function loadUser() {
-  const { data: { session } } = await sb.auth.getSession();
-  S.user = session?.user ?? null; 
-  S.role = S.user?.app_metadata?.role ?? null; 
+
+// Nhận trực tiếp đối tượng directUser từ signIn/signUp để tránh trễ session
+async function loadUser(directUser = null) {
+  let u = directUser;
+  if (!u) {
+    const { data: { session } } = await sb.auth.getSession();
+    u = session?.user ?? null;
+  }
+  S.user = u;
+  S.role = S.user?.app_metadata?.role ?? null;
   S.me = null; S.favR = new Set(); S.favS = new Set();
   if (!S.user) return;
 
-  const m = await sb.from('nguoidung').select('manguoidung,hoten,email,sodienthoai,sodu,ngaytao,trangthai').eq('email', S.user.email).maybeSingle();
-  S.me = m.data;
-
-  // --- DANH SÁCH EMAIL QUẢN TRỊ VIÊN ---
-  // Hãy thay thế 'email_admin_cua_ban@gmail.com' bằng đúng email bạn dùng để đăng nhập
-  const ADMIN_EMAILS = [
-    'vohoangminh93.tubd@gmail.com',
-    'admin@busline.example.com'
-  ];
+  // Kiểm tra quyền Admin ngay lập tức
   if (S.user.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(S.user.email.toLowerCase())) {
     S.role = 'admin';
   }
-  // ------------------------------------
+
+  const m = await sb.from('nguoidung').select('manguoidung,hoten,email,sodienthoai,sodu,ngaytao,trangthai').eq('email', S.user.email).maybeSingle();
+  S.me = m.data;
 
   if (S.me) {
     const [fr, fs] = await Promise.all([sb.from('tuyenyeuthich').select('matuyen').eq('manguoidung', S.me.manguoidung), sb.from('tramyeuthich').select('matram').eq('manguoidung', S.me.manguoidung)]);
@@ -210,10 +216,10 @@ function viewAcc() {
       ${su ? '<div class="f"><label>Họ và tên</label><input name="n" required maxlength="100" autocomplete="name"></div>' : ''}
       <div class="f"><label>Số điện thoại${su ? '' : ' (quản trị viên dùng email)'}</label><input name="u" required placeholder="0901234567" autocomplete="username"></div>
       <div class="f"><label>Mật khẩu${su ? ' (tối thiểu 8 ký tự)' : ''}</label><input type="password" name="p" required minlength="${su ? 8 : 1}" autocomplete="${su ? 'new-password' : 'current-password'}"></div>
-      <div class="acts"><button type="button" class="btn" data-act="sw">${su ? 'Đã có tài khoản' : 'Tạo tài khoản'}</button><button class="btn pri">${su ? 'Đăng ký' : 'Đăng nhập'}</button></div></form>
+      <div class="acts"><button type="button" class="btn" data-act="sw">${su ? 'Đã có tài khoản' : 'Tạo tài khoản'}</button><button type="submit" class="btn pri">${su ? 'Đăng ký' : 'Đăng nhập'}</button></div></form>
       <p class="muted" style="font-size:13px">Không cần email. Quên mật khẩu: liên hệ quản trị viên.</p></section>`;
   }
-  if (!S.me) return '<section class="panel"><h3>Tài khoản quản trị</h3><p class="muted">Tài khoản này chưa có hồ sơ khách hàng. Dùng tab “Nhân viên” nếu bạn có quyền.</p></section>';
+  if (!S.me) return '<section class="panel"><h3>Tài khoản quản trị</h3><p class="muted">Tài khoản này chưa có hồ sơ khách hàng. Dùng tab “Nhân viên” ở thanh menu phía trên để quản lý hệ thống.</p></section>';
   const m = S.me;
   return `<div class="grid" style="grid-template-columns:340px 1fr"><div><section class="panel"><h3>Thông tin cá nhân</h3><form id="pf">
     <div class="f"><label>Họ và tên</label><input name="hoten" value="${esc(m.hoten)}" required maxlength="100"></div>
@@ -262,7 +268,11 @@ async function loadStaff() {
 }
 
 /* ---------- Sự kiện ---------- */
-async function reloadMe() { await loadUser(); render(); }
+async function reloadMe(directUser = null) { 
+  await loadUser(directUser); 
+  render(); 
+}
+
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tab],[data-sel],[data-act]'); if (!b) return;
   if (b.dataset.tab) { S.tab = b.dataset.tab; return render(); }
@@ -291,22 +301,64 @@ document.addEventListener('change', async e => {
     error || !data?.length ? toast('Không cập nhật được phản hồi.', true) : toast('Đã cập nhật.');
   }
 });
+
+let isSubmittingAuth = false;
 document.addEventListener('submit', async e => {
   e.preventDefault(); const f = new FormData(e.target), id = e.target.id;
   if (id === 'af') {
-    const u = f.get('u').trim(), isMail = u.includes('@'), phone = normPhone(u);
-    if (!isMail && !/^0\d{8,10}$/.test(phone)) return toast('Số điện thoại không hợp lệ (ví dụ 0901234567).', true);
-    const email = isMail ? u : phone + '@' + EMAIL_DOMAIN;
-    if (S.signup) {
-      if (isMail) return toast('Vui lòng đăng ký bằng số điện thoại.', true);
-      const { data, error } = await sb.auth.signUp({ email, password: f.get('p'), options: { data: { full_name: f.get('n').trim(), phone } } });
-      if (error) return toast(/already|registered/i.test(error.message) ? 'Số điện thoại này đã có tài khoản. Hãy đăng nhập.' : 'Đăng ký thất bại: ' + error.message, true);
-      if (!data.session) return toast('Đã tạo tài khoản nhưng chưa đăng nhập được. Cần tắt “Confirm email” trong Supabase.', true);
-    } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password: f.get('p') });
-      if (error) return toast('Đăng nhập thất bại: sai email/số điện thoại hoặc mật khẩu.', true);
+    if (isSubmittingAuth) return;
+    const btn = e.target.querySelector('button[type="submit"]');
+    const oldText = btn.textContent;
+    isSubmittingAuth = true;
+    btn.disabled = true;
+    btn.textContent = 'Đang xử lý...';
+
+    try {
+      const u = f.get('u').trim(), isMail = u.includes('@'), phone = normPhone(u);
+      if (!isMail && !/^0\d{8,10}$/.test(phone)) {
+        toast('Số điện thoại không hợp lệ (ví dụ 0901234567).', true);
+        return;
+      }
+      const email = isMail ? u : phone + '@' + EMAIL_DOMAIN;
+      let loggedUser = null;
+
+      if (S.signup) {
+        if (isMail) {
+          toast('Vui lòng đăng ký bằng số điện thoại.', true);
+          return;
+        }
+        const { data, error } = await sb.auth.signUp({ email, password: f.get('p'), options: { data: { full_name: f.get('n').trim(), phone } } });
+        if (error) {
+          toast(/already|registered/i.test(error.message) ? 'Số điện thoại này đã có tài khoản. Hãy đăng nhập.' : 'Đăng ký thất bại: ' + error.message, true);
+          return;
+        }
+        if (!data.session) {
+          toast('Đã tạo tài khoản nhưng chưa đăng nhập được. Cần tắt “Confirm email” trong Supabase.', true);
+          return;
+        }
+        loggedUser = data.user;
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: f.get('p') });
+        if (error) {
+          toast('Đăng nhập thất bại: sai email/số điện thoại hoặc mật khẩu.', true);
+          return;
+        }
+        loggedUser = data.user;
+      }
+
+      // Truyền thẳng loggedUser vào loadUser để nhận diện quyền ngay lập tức không đợi session
+      await loadUser(loggedUser);
+      // Nếu là admin/driver thì mở thẳng tab Nhân viên, khách thường mở tab Tài khoản
+      S.tab = staff() ? 'staff' : 'acc';
+      render();
+      toast('Đăng nhập thành công!');
+    } finally {
+      isSubmittingAuth = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
     }
-    S.tab = 'acc'; await reloadMe();
   } else if (id === 'pf') {
     const sdt = normPhone(f.get('sdt')); if (sdt && !/^\d{8,15}$/.test(sdt)) return toast('Số điện thoại không hợp lệ.', true);
     const { error } = await sb.from('nguoidung').update({ hoten: f.get('hoten').trim(), sodienthoai: sdt || null }).eq('manguoidung', S.me.manguoidung);
@@ -329,7 +381,13 @@ document.addEventListener('submit', async e => {
 (async function init() {
   if (!ok) { $('#cfg').hidden = false; return render(); }
   await loadCatalog(); await loadUser(); render();
-  sb.auth.onAuthStateChange(async (ev, ses) => { if ((ses?.user?.id ?? null) !== (S.user?.id ?? null)) { await loadUser(); render(); } });
+  sb.auth.onAuthStateChange(async (ev, ses) => {
+    if (isSubmittingAuth) return; // Tránh xung đột khi đang xử lý submit form
+    if ((ses?.user?.id ?? null) !== (S.user?.id ?? null)) {
+      await loadUser(ses?.user ?? null);
+      render();
+    }
+  });
 })();
 </script>
 </body>
