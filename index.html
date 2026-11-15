@@ -79,7 +79,6 @@ const S = { routes: [], stops: [], ct: [], user: null, me: null, role: null, fav
 const stopOf = id => S.stops.find(s => s.matram === id);
 const staff = () => S.role === 'admin' || S.role === 'driver';
 
-// Danh sách email quản trị viên cố định
 const ADMIN_EMAILS = [
   'vohoangminh93.tubd@gmail.com',
   'admin@busline.example.com'
@@ -92,7 +91,6 @@ async function loadCatalog() {
   S.routes = r.data.map(x => ({ ...x, matuyen: trim(x.matuyen) })); S.stops = t.data; S.ct = c.data.map(x => ({ ...x, matuyen: trim(x.matuyen) }));
 }
 
-// Nhận trực tiếp đối tượng directUser từ signIn/signUp để tránh trễ session
 async function loadUser(directUser = null) {
   let u = directUser;
   if (!u) {
@@ -104,7 +102,6 @@ async function loadUser(directUser = null) {
   S.me = null; S.favR = new Set(); S.favS = new Set();
   if (!S.user) return;
 
-  // Kiểm tra quyền Admin ngay lập tức
   if (S.user.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(S.user.email.toLowerCase())) {
     S.role = 'admin';
   }
@@ -268,6 +265,8 @@ async function loadStaff() {
 }
 
 /* ---------- Sự kiện ---------- */
+let isSubmittingAuth = false;
+
 async function reloadMe(directUser = null) { 
   await loadUser(directUser); 
   render(); 
@@ -279,7 +278,23 @@ document.addEventListener('click', async e => {
   if (b.dataset.sel) return pick(b.dataset.sel);
   const a = b.dataset.act;
   if (a === 'sw') { S.signup = !S.signup; render(); }
-  else if (a === 'out') { await sb.auth.signOut(); S.tab = 'routes'; await reloadMe(); }
+  else if (a === 'out') {
+    isSubmittingAuth = true;
+    try {
+      await sb.auth.signOut();
+    } catch (err) {
+      console.error('Lỗi đăng xuất:', err);
+    }
+    S.user = null;
+    S.me = null;
+    S.role = null;
+    S.favR = new Set();
+    S.favS = new Set();
+    S.tab = 'routes';
+    render();
+    toast('Đã đăng xuất.');
+    isSubmittingAuth = false;
+  }
   else if (a === 'plan') doPlan();
   else if (a === 'buy') {
     const r = S.routes.find(x => x.matuyen === S.sel); if (!confirm(`Mua 1 vé lượt tuyến ${r.matuyen} giá ${money(r.giave)} bằng số dư ví?`)) return;
@@ -302,7 +317,6 @@ document.addEventListener('change', async e => {
   }
 });
 
-let isSubmittingAuth = false;
 document.addEventListener('submit', async e => {
   e.preventDefault(); const f = new FormData(e.target), id = e.target.id;
   if (id === 'af') {
@@ -346,9 +360,7 @@ document.addEventListener('submit', async e => {
         loggedUser = data.user;
       }
 
-      // Truyền thẳng loggedUser vào loadUser để nhận diện quyền ngay lập tức không đợi session
       await loadUser(loggedUser);
-      // Nếu là admin/driver thì mở thẳng tab Nhân viên, khách thường mở tab Tài khoản
       S.tab = staff() ? 'staff' : 'acc';
       render();
       toast('Đăng nhập thành công!');
@@ -382,7 +394,7 @@ document.addEventListener('submit', async e => {
   if (!ok) { $('#cfg').hidden = false; return render(); }
   await loadCatalog(); await loadUser(); render();
   sb.auth.onAuthStateChange(async (ev, ses) => {
-    if (isSubmittingAuth) return; // Tránh xung đột khi đang xử lý submit form
+    if (isSubmittingAuth) return;
     if ((ses?.user?.id ?? null) !== (S.user?.id ?? null)) {
       await loadUser(ses?.user ?? null);
       render();
